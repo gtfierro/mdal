@@ -1,0 +1,13 @@
+btrdb:
+    address: "10.106.37.66:4410"
+
+bosswave:
+    namespace: scratch.ns
+    entityfile: corbusier_archiver.ent
+
+embeddedbrick:
+    enabled: false
+
+remotebrick:
+    enabled: true
+    baseuri: ciee/hod
