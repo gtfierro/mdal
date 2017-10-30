@@ -119,15 +119,16 @@ func (t *Timeseries) AddStreamWithTime(idx int, iv_times *iovec, iv_values *iove
 }
 
 func (t *Timeseries) AddAlignedStream(idx int, iv_times, iv_values *iovec) error {
-	stream := t.list.At(idx)
-	values, err := stream.NewValues(int32(iv_values.count()))
-	if err != nil {
-		return errors.Wrap(err, "Could not allocate value array")
-	}
 
 	times, err := t.collection.Times()
 	if err != nil {
 		return errors.Wrap(err, "Could not retrieve collection times")
+	}
+
+	stream := t.list.At(idx)
+	values, err := stream.NewValues(int32(times.Len()))
+	if err != nil {
+		return errors.Wrap(err, "Could not allocate value array")
 	}
 
 	// we need to leverage the timestamp of each value in order to align it properly
@@ -136,12 +137,17 @@ func (t *Timeseries) AddAlignedStream(idx int, iv_times, iv_values *iovec) error
 	align := func(idx int, time int64) {
 		// check if timestamp for data stream @ idx is within colIdx window.
 		// If it is, add the data here. If its not, we look elsewhere
-		if times.At(colIdx) <= time && time < times.At(colIdx+1) {
+		if colIdx >= times.Len() {
+			return // skip the extra ones
+		}
+		if times.At(colIdx) <= time && (colIdx == times.Len()-1 || time < times.At(colIdx+1)) {
 			values.Set(colIdx, iv_values.getValue(idx))
 		} else if times.At(colIdx) > time && colIdx > 0 { // before
 			values.Set(colIdx-1, iv_values.getValue(idx))
 		} else if time >= times.At(colIdx+1) {
 			values.Set(colIdx+1, iv_values.getValue(idx))
+		} else {
+			log.Error("bad value")
 		}
 		colIdx += 1
 	}
