@@ -75,4 +75,6 @@ func main() {
 		log.Info(len(b2))
 	}
 	fmt.Println(q)
+
+	log.Fatal(RunBosswave(c))
 }
