@@ -102,7 +102,7 @@ func RunBosswave(c *Core) error {
 
 		resp.Rows = query.uuids
 		resp.Data = packed
-		po, err := bw2.CreateMsgPackPayloadObject(ResponsePIDString, msg)
+		po, err = bw2bind.CreateMsgPackPayloadObject(ResponsePID, msg)
 		if err != nil {
 			return errors.Wrap(err, "Error marshalling results (msgpack)")
 		}
