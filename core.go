@@ -22,7 +22,7 @@ func newCore() *Core {
 	return c
 }
 
-func (core *Core) HandleQuery(q Query) error {
+func (core *Core) HandleQuery(q Query) (*Timeseries, error) {
 	// Resolve the variables and collect the UUIDs
 	var varnames = make(map[string]VarParams)
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
@@ -30,7 +30,7 @@ func (core *Core) HandleQuery(q Query) error {
 	for i, vardec := range q.Variables {
 		if err := core.brick.DoQuery(ctx, &vardec); err != nil {
 			log.Error(err)
-			return errors.Wrap(err, "Could not complete Brick query")
+			return nil, errors.Wrap(err, "Could not complete Brick query")
 		}
 		q.Variables[i] = vardec
 		varnames[vardec.Name] = vardec
@@ -48,7 +48,7 @@ func (core *Core) HandleQuery(q Query) error {
 		} else if len(id) == 36 {
 			parsed := uuid.Parse(id)
 			if parsed == nil {
-				return errors.New("Invalid UUID returned")
+				return nil, errors.New("Invalid UUID returned")
 			}
 			uuids = append(uuids, parsed)
 			selectors = append(selectors, q.Selectors[idx])
@@ -62,11 +62,8 @@ func (core *Core) HandleQuery(q Query) error {
 		q.Time.T0, q.Time.T1 = q.Time.T1, q.Time.T0
 	}
 
+	// perform the query
 	q.uuids = uuids
 	q.selectors = selectors
-	ts, err := core.timeseries.DoQuery(q)
-	log.Error(err)
-	log.Debugf("%+v", ts.Info())
-
-	return nil
+	return core.timeseries.DoQuery(q)
 }

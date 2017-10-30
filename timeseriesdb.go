@@ -119,16 +119,16 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 	numMap := make(map[uuid.Array]int)
 	for idx, uuid := range q.uuids {
 		if q.Time.Aligned && (q.Params.Window || q.Params.Statistical) {
-			if q.Selectors[idx].DoMin() {
+			if q.selectors[idx].DoMin() {
 				numMap[uuid.Array()]++
 			}
-			if q.Selectors[idx].DoMax() {
+			if q.selectors[idx].DoMax() {
 				numMap[uuid.Array()]++
 			}
-			if q.Selectors[idx].DoMean() {
+			if q.selectors[idx].DoMean() {
 				numMap[uuid.Array()]++
 			}
-			if q.Selectors[idx].DoCount() {
+			if q.selectors[idx].DoCount() {
 				numMap[uuid.Array()]++
 			}
 		} else {
@@ -188,6 +188,9 @@ func (b *btrdbClient) handleRequest(req dataRequest) error {
 	if req.params.Statistical {
 		log.Critical("NOT IMPLEMENTED YET")
 	} else if req.params.Window {
+		if err := b.getWindow(req); err != nil {
+			return err
+		}
 	} else { // raw!
 		if err := b.getData(req); err != nil {
 			return err

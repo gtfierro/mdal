@@ -44,7 +44,8 @@ func main() {
 		Time: TimeParams{
 			T0:         t0,
 			T1:         t1,
-			WindowSize: 3600000000000,
+			WindowSize: 36000000000,
+			Aligned:    true,
 		},
 		Params: Params{
 			Statistical: false,
@@ -55,6 +56,23 @@ func main() {
 		log.Fatal(http.ListenAndServe("localhost:6060", nil))
 	}()
 
-	c.HandleQuery(q)
+	ts, err := c.HandleQuery(q)
+	if err != nil {
+		log.Error(err)
+	} else {
+		log.Debugf("%+v", ts.Info())
+	}
+	b1, err := ts.msg.Marshal()
+	if err != nil {
+		log.Error(err)
+	} else {
+		log.Info(len(b1))
+	}
+	b2, err := ts.msg.MarshalPacked()
+	if err != nil {
+		log.Error(err)
+	} else {
+		log.Info(len(b2))
+	}
 	fmt.Println(q)
 }
