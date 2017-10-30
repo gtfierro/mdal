@@ -87,7 +87,7 @@ func RunBosswave(c *Core) error {
 
 		log.Info("Serving query", query)
 
-		ts, err := c.HandleQuery(query)
+		ts, err := c.HandleQuery(&query)
 		if err != nil {
 			return errors.Wrap(err, "Could not run query")
 		}
@@ -102,13 +102,15 @@ func RunBosswave(c *Core) error {
 
 		resp.Rows = query.uuids
 		resp.Data = packed
-		po, err = bw2bind.CreateMsgPackPayloadObject(ResponsePID, msg)
+		po, err = bw2bind.CreateMsgPackPayloadObject(ResponsePID, resp)
 		if err != nil {
 			return errors.Wrap(err, "Error marshalling results (msgpack)")
 		}
 
-		if err := iface.PublishSignal(msg.From, po); err != nil {
-			return errors.Wrapf(err, "Could not publish on %s", iface.SignalURI(msg.From))
+		fromVK := msg.From
+		signaluri := fromVK[:len(fromVK)-1]
+		if err := iface.PublishSignal(signaluri, po); err != nil {
+			return errors.Wrapf(err, "Could not publish on %s", iface.SignalURI(signaluri))
 		}
 
 		return nil
