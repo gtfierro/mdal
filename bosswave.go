@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	"gopkg.in/immesys/bw2bind.v5"
 )
@@ -21,6 +22,11 @@ type mdalQuery struct {
 	// serialization-friendly time parameters
 	Time   QueryTimeParams
 	Params Params
+}
+
+type mdalResponse struct {
+	Rows []uuid.UUID
+	Data []byte
 }
 
 const MDALQueryPIDString = "2.0.10.3"
@@ -47,6 +53,7 @@ func RunBosswave(c *Core) error {
 	handleQuery := func(msg *bw2bind.SimpleMessage) error {
 		var inq mdalQuery
 		var query Query
+		var resp mdalResponse
 		po := msg.GetOnePODF(MDALQueryPIDString)
 		if po == nil {
 			return nil
@@ -92,6 +99,18 @@ func RunBosswave(c *Core) error {
 		}
 		log.Debug(len(packed))
 		log.Debugf("%+v", query)
+
+		resp.Rows = query.uuids
+		resp.Data = packed
+		po, err := bw2.CreateMsgPackPayloadObject(ResponsePIDString, msg)
+		if err != nil {
+			return errors.Wrap(err, "Error marshalling results (msgpack)")
+		}
+
+		if err := iface.PublishSignal(msg.From, po); err != nil {
+			return errors.Wrapf(err, "Could not publish on %s", iface.SignalURI(msg.From))
+		}
+
 		return nil
 	}
 
