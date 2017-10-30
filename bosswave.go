@@ -16,7 +16,8 @@ type QueryTimeParams struct {
 
 type mdalQuery struct {
 	Composition []string
-	Selectors   []Selector
+	Selectors   []int
+	Variables   []VarParams
 	// serialization-friendly time parameters
 	Time   QueryTimeParams
 	Params Params
@@ -54,13 +55,16 @@ func RunBosswave(c *Core) error {
 		if obj, ok := po.(bw2bind.MsgPackPayloadObject); !ok {
 			return errors.New("Payload 2.0.10.3 was not MsgPack")
 		} else if err := obj.ValueInto(&inq); err != nil {
-			return errors.Wrap(err, "Could not unmarshal into a hod query")
+			return errors.Wrap(err, "Could not unmarshal into a mdal query")
 		}
 
 		// construct query
 		query.Composition = inq.Composition
-		query.Selectors = inq.Selectors
+		for _, s := range inq.Selectors {
+			query.Selectors = append(query.Selectors, Selector(s))
+		}
 		query.Params = inq.Params
+		query.Variables = inq.Variables
 		t0, err := time.Parse("2006-01-02 15:04:05", inq.Time.T0)
 		if err != nil {
 			return errors.Wrapf(err, "Could not parse T0 (%s)", inq.Time.T0)
