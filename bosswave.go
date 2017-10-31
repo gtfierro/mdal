@@ -22,11 +22,13 @@ type mdalQuery struct {
 	// serialization-friendly time parameters
 	Time   QueryTimeParams
 	Params Params
+	Nonce  int64
 }
 
 type mdalResponse struct {
-	Rows []uuid.UUID
-	Data []byte
+	Rows  []uuid.UUID
+	Data  []byte
+	Nonce int64
 }
 
 const MDALQueryPIDString = "2.0.10.3"
@@ -102,6 +104,7 @@ func RunBosswave(c *Core) error {
 
 		resp.Rows = query.uuids
 		resp.Data = packed
+		resp.Nonce = inq.Nonce
 		po, err = bw2bind.CreateMsgPackPayloadObject(ResponsePID, resp)
 		if err != nil {
 			return errors.Wrap(err, "Error marshalling results (msgpack)")
