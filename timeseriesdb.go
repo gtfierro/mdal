@@ -13,7 +13,7 @@ import (
 
 var timeout = time.Second * 30
 var errStreamNotExist = errors.New("Stream does not exist")
-var maxWorkers = 10
+var maxWorkers = 200
 
 type btrdbClient struct {
 	address     string
