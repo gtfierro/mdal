@@ -137,6 +137,7 @@ func (t *Timeseries) AddAlignedStream(idx int, iv_times, iv_values *iovec) error
 	align := func(idx int, time int64) {
 		// check if timestamp for data stream @ idx is within colIdx window.
 		// If it is, add the data here. If its not, we look elsewhere
+		//log.Debug(times.Len(), colIdx, idx)
 		if colIdx >= times.Len() {
 			return // skip the extra ones
 		}

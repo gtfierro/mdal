@@ -167,6 +167,7 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 	wg.Add(len(q.uuids))
 	idx := 0
 	for uuidIdx, uuid := range q.uuids {
+		log.Debug(uuid.String(), uuidIdx, idx, len(q.uuids))
 		req := dataRequest{
 			uuid:     uuid,
 			idx:      idx,
@@ -289,6 +290,7 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 
 	subidx := 0
 
+	log.Info("add stream", req.idx, "var", subidx, "offset", req.idx+subidx)
 	if req.selector.DoMin() {
 		if err = req.ts.AddAlignedStream(req.idx+subidx, iv_time, iv_min_values); err != nil {
 			return err
