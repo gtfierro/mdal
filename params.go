@@ -93,6 +93,7 @@ type Query struct {
 	// the resolved variables; these are the timeseries we are fetching
 	uuids     []uuid.UUID
 	selectors []Selector
+	units     []Unit
 }
 
 type Params struct {

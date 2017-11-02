@@ -19,6 +19,7 @@ type btrdbClient struct {
 	address     string
 	conn        *btrdb.BTrDB
 	streamCache sync.Map
+	unitCache   sync.Map
 	queries     chan dataRequest
 	workerpool  chan chan dataRequest
 }
@@ -27,6 +28,7 @@ type dataRequest struct {
 	uuid     uuid.UUID
 	idx      int
 	selector Selector
+	units    Unit
 	time     TimeParams
 	params   Params
 	done     func()
@@ -69,10 +71,12 @@ func connectBTrDB() *btrdbClient {
 	return b
 }
 
-func (b *btrdbClient) getStream(streamuuid uuid.UUID) (stream *btrdb.Stream, err error) {
+func (b *btrdbClient) getStream(streamuuid uuid.UUID) (stream *btrdb.Stream, units Unit, err error) {
 	_stream, found := b.streamCache.Load(streamuuid.Array())
 	if found {
 		stream = _stream.(*btrdb.Stream)
+		_units, _ := b.unitCache.Load(streamuuid.Array())
+		units = _units.(Unit)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -84,6 +88,21 @@ func (b *btrdbClient) getStream(streamuuid uuid.UUID) (stream *btrdb.Stream, err
 			return
 		}
 	} else if exists {
+
+		// get the units
+		annotations, _, annotationErr := stream.CachedAnnotations(context.Background())
+		if annotationErr != nil {
+			err = errors.Wrap(annotationErr, "Could not fetch stream annotations")
+			return
+		}
+		if _units, found := annotations["unit"]; found {
+			units = ParseUnit(_units)
+			b.unitCache.Store(streamuuid.Array(), units)
+		} else {
+			b.unitCache.Store(streamuuid.Array(), NO_UNITS)
+			units = NO_UNITS
+		}
+
 		b.streamCache.Store(streamuuid.Array(), stream)
 		return
 	}
@@ -91,25 +110,6 @@ func (b *btrdbClient) getStream(streamuuid uuid.UUID) (stream *btrdb.Stream, err
 	// else where we return a nil stream and the errStreamNotExist
 	err = errStreamNotExist
 	return
-}
-
-// given a list of UUIDs, returns those for which a stream object exists
-func (b *btrdbClient) uuidsToStreams(uuids ...uuid.UUID) []*btrdb.Stream {
-	var streams = make([]*btrdb.Stream, len(uuids))
-	// filter the list of uuids by those that are actually streams
-	for idx, id := range uuids {
-		// grab the stream object from the cache
-		stream, err := b.getStream(id)
-		if err == nil {
-			streams[idx] = stream
-			continue
-		}
-		if err == errStreamNotExist {
-			continue // skip if no stream
-		}
-		log.Error(errors.Wrapf(err, "Could not find stream %s", id))
-	}
-	return streams
 }
 
 func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
@@ -171,6 +171,7 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 			uuid:     uuid,
 			idx:      idx,
 			selector: q.selectors[uuidIdx],
+			units:    q.units[uuidIdx],
 			time:     q.Time,
 			params:   q.Params,
 			done:     wg.Done,
@@ -180,6 +181,7 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 		b.queries <- req
 	}
 	wg.Wait()
+
 	return ts, nil
 }
 
@@ -200,7 +202,7 @@ func (b *btrdbClient) handleRequest(req dataRequest) error {
 }
 
 func (b *btrdbClient) getData(req dataRequest) error {
-	stream, err := b.getStream(req.uuid)
+	stream, units, err := b.getStream(req.uuid)
 	if err != nil {
 		return err
 	}
@@ -216,7 +218,7 @@ func (b *btrdbClient) getData(req dataRequest) error {
 	rawpoints, generations, errchan := stream.RawValues(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), 0)
 	for p := range rawpoints {
 		iv_time.addTime(p.Time)
-		iv_values.addValue(p.Value)
+		iv_values.addValue(ConvertFrom(p.Value, units, req.units))
 	}
 	<-generations
 	if err := <-errchan; err != nil {
@@ -232,7 +234,7 @@ func (b *btrdbClient) getData(req dataRequest) error {
 }
 
 func (b *btrdbClient) getWindow(req dataRequest) error {
-	stream, err := b.getStream(req.uuid)
+	stream, units, err := b.getStream(req.uuid)
 	if err != nil {
 		return err
 	}
@@ -267,13 +269,13 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 	for p := range statpoints {
 		iv_time.addTime(p.Time)
 		if req.selector.DoMin() {
-			iv_min_values.addValue(p.Min)
+			iv_min_values.addValue(ConvertFrom(p.Min, units, req.units))
 		}
 		if req.selector.DoMax() {
-			iv_max_values.addValue(p.Max)
+			iv_max_values.addValue(ConvertFrom(p.Max, units, req.units))
 		}
 		if req.selector.DoMean() {
-			iv_mean_values.addValue(p.Mean)
+			iv_mean_values.addValue(ConvertFrom(p.Mean, units, req.units))
 		}
 		if req.selector.DoCount() {
 			iv_count_values.addValue(float64(p.Count))

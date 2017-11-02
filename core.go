@@ -39,11 +39,13 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 	// form the set of uuids used for the data matrix
 	var uuids []uuid.UUID
 	var selectors []Selector
+	var units []Unit
 	for idx, id := range q.Composition {
 		if vardec, found := varnames[id]; found {
 			uuids = append(uuids, vardec.uuids...)
 			for range vardec.uuids {
 				selectors = append(selectors, q.Selectors[idx])
+				units = append(units, ParseUnit(vardec.Units))
 			}
 		} else if len(id) == 36 {
 			parsed := uuid.Parse(id)
@@ -52,6 +54,7 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 			}
 			uuids = append(uuids, parsed)
 			selectors = append(selectors, q.Selectors[idx])
+			units = append(units, ParseUnit("none"))
 		} else {
 			log.Debugf("invalid thing %s", id)
 			continue
@@ -65,5 +68,6 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 	// perform the query
 	q.uuids = uuids
 	q.selectors = selectors
+	q.units = units
 	return core.timeseries.DoQuery(*q)
 }
