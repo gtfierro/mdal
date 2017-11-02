@@ -109,6 +109,7 @@ func RunBosswave(c *Core) error {
 		if err != nil {
 			return errors.Wrap(err, "Error marshalling results (msgpack)")
 		}
+
 		fromVK := msg.From
 		signaluri := fromVK[:len(fromVK)-1]
 		if err := iface.PublishSignal(signaluri, po); err != nil {
