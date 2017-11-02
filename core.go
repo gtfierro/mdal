@@ -22,7 +22,7 @@ func newCore() *Core {
 	return c
 }
 
-func (core *Core) HandleQuery(q Query) (*Timeseries, error) {
+func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 	// Resolve the variables and collect the UUIDs
 	var varnames = make(map[string]VarParams)
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
@@ -65,5 +65,5 @@ func (core *Core) HandleQuery(q Query) (*Timeseries, error) {
 	// perform the query
 	q.uuids = uuids
 	q.selectors = selectors
-	return core.timeseries.DoQuery(q)
+	return core.timeseries.DoQuery(*q)
 }
