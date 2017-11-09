@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-var BUFSIZE = 1024 * 1024 * 64 // 64 MB
+var BUFSIZE = 1024 * 1024 * 16 // 16 MB
 var LASTENTRY = (BUFSIZE / 8) - 1
 var BUFPOOL = sync.Pool{
 	New: func() interface{} {

@@ -71,3 +71,49 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 	q.units = units
 	return core.timeseries.DoQuery(*q)
 }
+
+// There are 2 parts to priming the cache:
+// For the UUIDs we have, we go 1 level of resolution "up" (bit shift the nanosecond window left by 1)
+// and fetch that data (If the data is raw, then just default to 'year').
+// Then, fetch the data at that resolution for the range before and range after each of the dates
+//
+// The second part is fetching at the year-granularity for related streams (more on that later)
+// TODO: extract related streams
+func (core *Core) primeCache(q *Query) {
+	// this is just a guess as to what would be a good size.
+	biggerWindow := q.Time.WindowSize << 2
+
+	dataRange := q.Time.T1.Sub(q.Time.T0)
+
+	timeparams := TimeParams{
+		T0:         q.Time.T0.Add(-2 * dataRange),
+		T1:         q.Time.T0,
+		WindowSize: biggerWindow,
+	}
+	log.Info("Prime cache for", timeparams, "at resolution", time.Nanosecond*time.Duration(biggerWindow))
+
+	for _, uuid := range q.uuids {
+		req := dataRequest{
+			uuid: uuid,
+			time: timeparams,
+		}
+		core.timeseries.queries <- req
+	}
+
+	// after range
+
+	timeparams = TimeParams{
+		T0:         q.Time.T1,
+		T1:         q.Time.T1.Add(2 * dataRange),
+		WindowSize: biggerWindow,
+	}
+	log.Info("Prime cache for", timeparams, "at resolution", time.Nanosecond*time.Duration(biggerWindow))
+
+	for _, uuid := range q.uuids {
+		req := dataRequest{
+			uuid: uuid,
+			time: timeparams,
+		}
+		core.timeseries.queries <- req
+	}
+}

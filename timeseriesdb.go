@@ -187,6 +187,13 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 }
 
 func (b *btrdbClient) handleRequest(req dataRequest) error {
+
+	// if this is true, then this is a cache priming query
+	if req.ts == nil {
+		b.primeCache(req)
+		return nil
+	}
+
 	defer req.done()
 	if req.params.Statistical {
 		log.Critical("NOT IMPLEMENTED YET")
@@ -323,4 +330,22 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 	iv_time.free()
 
 	return nil
+}
+
+func (b *btrdbClient) primeCache(req dataRequest) {
+	stream, _, err := b.getStream(req.uuid)
+	if err != nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	statpoints, generations, errchan := stream.Windows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), req.time.WindowSize, 0, 0)
+	for range statpoints {
+	}
+	<-generations
+	if err := <-errchan; err != nil {
+		log.Error(err)
+		return
+	}
+
 }
