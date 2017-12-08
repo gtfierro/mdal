@@ -62,10 +62,37 @@ func (remote remoteBrickClient) DoQuery(ctx context.Context, params *VarParams) 
 	return err
 }
 
+type localBrickClient struct {
+	db *hoddb.DB
+}
+
+func (local localBrickClient) DoQuery(ctx context.Context, params *VarParams) (err error) {
+	// perform the Brick query
+	res, err := local.db.RunQueryString(params.Definition)
+	if err != nil {
+		return err
+	}
+
+	// Add the UUIDs to the result. Error out if we get something that's not a UUID
+	// in a "uuid" field
+	for _, row := range res.Rows {
+		for k, v := range row {
+			if strings.Contains(k, "uuid") {
+				parsed := uuid.Parse(v.Value)
+				if parsed == nil {
+					return errors.New("Invalid UUID returned")
+				}
+				params.uuids = append(params.uuids, parsed)
+			}
+		}
+	}
+
+	return nil
+}
+
 func connectHodDB() brickClient {
 
 	if Config.EmbeddedBrick.Enabled {
-		log.Critical("TODO: implement")
 		// start database
 		cfg, err := hodconfig.ReadConfig(Config.EmbeddedBrick.HodConfig)
 		if err != nil {
@@ -84,6 +111,10 @@ func connectHodDB() brickClient {
 		err = db.LoadDataset(ds)
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		return localBrickClient{
+			db: db,
 		}
 
 		// TODO: add db.Close on exit?
