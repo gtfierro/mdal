@@ -6,8 +6,10 @@ bosswave:
     entityfile: corbusier_archiver.ent
 
 embeddedbrick:
-    enabled: false
+    enabled: true
+    hodconfig: hodconfig/hodconfig.yaml
+    buildingfile: hodconfig/ciee.ttl
 
 remotebrick:
-    enabled: true
+    enabled: false
     baseuri: ciee/hod
