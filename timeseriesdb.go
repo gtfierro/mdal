@@ -11,7 +11,7 @@ import (
 	"gopkg.in/btrdb.v4"
 )
 
-var timeout = time.Second * 30
+var timeout = time.Second * 300
 var errStreamNotExist = errors.New("Stream does not exist")
 var maxWorkers = 200
 

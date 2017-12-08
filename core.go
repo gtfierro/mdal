@@ -69,7 +69,11 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 	q.uuids = uuids
 	q.selectors = selectors
 	q.units = units
-	return core.timeseries.DoQuery(*q)
+	ts, err := core.timeseries.DoQuery(*q)
+	if err == nil {
+		go core.primeCache(q)
+	}
+	return ts, err
 }
 
 // There are 2 parts to priming the cache:
@@ -81,7 +85,7 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 // TODO: extract related streams
 func (core *Core) primeCache(q *Query) {
 	// this is just a guess as to what would be a good size.
-	biggerWindow := q.Time.WindowSize << 2
+	biggerWindow := q.Time.WindowSize << 5
 
 	dataRange := q.Time.T1.Sub(q.Time.T0)
 
