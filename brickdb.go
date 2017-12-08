@@ -6,6 +6,9 @@ import (
 	"time"
 
 	hod "github.com/gtfierro/hod/clients/go"
+	hodconfig "github.com/gtfierro/hod/config"
+	hoddb "github.com/gtfierro/hod/db"
+	turtle "github.com/gtfierro/hod/goraptor"
 	uuid "github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	bw2 "gopkg.in/immesys/bw2bind.v5"
@@ -63,8 +66,29 @@ func connectHodDB() brickClient {
 
 	if Config.EmbeddedBrick.Enabled {
 		log.Critical("TODO: implement")
-	} else if Config.RemoteBrick.Enabled {
+		// start database
+		cfg, err := hodconfig.ReadConfig(Config.EmbeddedBrick.HodConfig)
+		if err != nil {
+			log.Fatal(err)
+		}
+		db, err := hoddb.NewDB(cfg)
+		if err != nil {
+			log.Fatal(err)
+		}
 
+		// load file
+		p := turtle.GetParser()
+		ds, duration := p.Parse(Config.EmbeddedBrick.BuildingFile)
+		rate := float64((float64(ds.NumTriples()) / float64(duration.Nanoseconds())) * 1e9)
+		log.Infof("Loaded %d triples, %d namespaces in %s (%.0f/sec)", ds.NumTriples(), ds.NumNamespaces(), duration, rate)
+		err = db.LoadDataset(ds)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// TODO: add db.Close on exit?
+		// idea: hoddb is *always* ad hoc and in-memory. Load in file then query as part of a session?
+	} else if Config.RemoteBrick.Enabled {
 		client := bw2.ConnectOrExit(Config.BOSSWAVE.Address)
 		client.OverrideAutoChainTo(true)
 		client.SetEntityFileOrExit(Config.BOSSWAVE.Entityfile)
