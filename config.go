@@ -14,8 +14,9 @@ var Config = struct {
 	}
 
 	EmbeddedBrick struct {
-		Enabled   bool   `required:"true"`
-		HodConfig string `default:"hodconfig.yaml"`
+		Enabled      bool   `required:"true"`
+		HodConfig    string `default:"hodconfig.yaml"`
+		BuildingFile string `default:"building.ttl"`
 	}
 
 	RemoteBrick struct {
