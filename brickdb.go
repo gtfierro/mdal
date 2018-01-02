@@ -8,7 +8,6 @@ import (
 	hod "github.com/gtfierro/hod/clients/go"
 	hodconfig "github.com/gtfierro/hod/config"
 	hoddb "github.com/gtfierro/hod/db"
-	turtle "github.com/gtfierro/hod/goraptor"
 	uuid "github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	bw2 "gopkg.in/immesys/bw2bind.v5"
@@ -63,7 +62,7 @@ func (remote remoteBrickClient) DoQuery(ctx context.Context, params *VarParams) 
 }
 
 type localBrickClient struct {
-	db *hoddb.DB
+	db *hoddb.MultiDB
 }
 
 func (local localBrickClient) DoQuery(ctx context.Context, params *VarParams) (err error) {
@@ -98,17 +97,7 @@ func connectHodDB() brickClient {
 		if err != nil {
 			log.Fatal(err)
 		}
-		db, err := hoddb.NewDB(cfg)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// load file
-		p := turtle.GetParser()
-		ds, duration := p.Parse(Config.EmbeddedBrick.BuildingFile)
-		rate := float64((float64(ds.NumTriples()) / float64(duration.Nanoseconds())) * 1e9)
-		log.Infof("Loaded %d triples, %d namespaces in %s (%.0f/sec)", ds.NumTriples(), ds.NumNamespaces(), duration, rate)
-		err = db.LoadDataset(ds)
+		db, err := hoddb.NewMultiDB(cfg)
 		if err != nil {
 			log.Fatal(err)
 		}

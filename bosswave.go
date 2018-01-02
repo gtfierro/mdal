@@ -22,13 +22,13 @@ type mdalQuery struct {
 	// serialization-friendly time parameters
 	Time   QueryTimeParams
 	Params Params
-	Nonce  int64
+	Nonce  uint64
 }
 
 type mdalResponse struct {
 	Rows  []uuid.UUID
 	Data  []byte
-	Nonce int64
+	Nonce uint64
 }
 
 const MDALQueryPIDString = "2.0.10.3"

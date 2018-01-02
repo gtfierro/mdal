@@ -76,5 +76,6 @@ func main() {
 	//}
 	//fmt.Println(q)
 
+	go RunHTTP(c)
 	log.Fatal(RunBosswave(c))
 }
