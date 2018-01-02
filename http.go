@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -78,7 +80,8 @@ func RunHTTP(c *Core) error {
 
 func (srv *httpServer) handleQuery(rw http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var inq mdalQuery
-	//var query Query
+	var resp mdalResponse
+	var query Query
 
 	handleErr := func(err error) {
 		log.Error(err)
@@ -93,5 +96,52 @@ func (srv *httpServer) handleQuery(rw http.ResponseWriter, req *http.Request, ps
 	}
 
 	log.Debugf("%+v", inq)
+	query.Composition = inq.Composition
+	for _, s := range inq.Selectors {
+		query.Selectors = append(query.Selectors, Selector(s))
+	}
+	query.Params = inq.Params
+	query.Variables = inq.Variables
+	t0, err := time.Parse("2006-01-02 15:04:05", inq.Time.T0)
+	if err != nil {
+		handleErr(errors.Wrapf(err, "Could not parse T0 (%s)", inq.Time.T0))
+		return
+	}
+	t1, err := time.Parse("2006-01-02 15:04:05", inq.Time.T1)
+	if err != nil {
+		handleErr(errors.Wrapf(err, "Could not parse T1 (%s)", inq.Time.T1))
+		return
+	}
+	query.Time.T0 = t0
+	query.Time.T1 = t1
+	query.Time.WindowSize = inq.Time.WindowSize
+	query.Time.Aligned = inq.Time.Aligned
 
+	log.Info("Serving query", query)
+
+	ts, err := srv.c.HandleQuery(&query)
+	if err != nil {
+		handleErr(errors.Wrap(err, "Could not run query"))
+		return
+	}
+
+	// serialize the result
+	packed, err := ts.msg.MarshalPacked()
+	if err != nil {
+		handleErr(errors.Wrap(err, "Error marshalling results"))
+		return
+	}
+	log.Debug(len(packed))
+	log.Debugf("%+v", query)
+
+	resp.Rows = query.uuids
+	resp.Data = packed
+	resp.Nonce = inq.Nonce
+
+	enc := json.NewEncoder(rw)
+	if err := enc.Encode(resp); err != nil {
+		handleErr(errors.Wrap(err, "Error encoding results as json"))
+		return
+	}
+	return
 }
