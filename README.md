@@ -21,12 +21,8 @@ query = {
     "Time": {
         "T0": "2017-07-21 00:00:00",
         "T1": "2017-08-30 00:00:00",
-        "WindowSize": int(1e9*60*120),
+        "WindowSize": '2h',
         "Aligned": True,
-    },
-    "Params": {
-        "Statistical": False,
-        "Window": True,
     },
 }
 ```
@@ -47,6 +43,43 @@ query = {
 - `Time`: the temporal parameters of the data query
     - `T0`: the first half of the range (inclusive)
     - `T1`: the second half of the range (inclusive). These will be reordered appropriately by MDAL
-    - `WindowSize`: window size in nanoseconds (if an `int`) and Go-style durations (if a `string`), e.g. "5m", "1h", "3d"
+    - `WindowSize`: window size as a Go-style duration, e.g. "5m", "1h", "3d". 
+        - Supported units are: `d`,`h`,`m`,`s`,`us`,`ms`,`ns`
     - `Aligned`: if true, then all timesetamps will be the same, else each stream (UUID) will have its own timestamps. Its best to leave this as `True`
 - `Params`: don't touch this for now
+
+Supported unit conversions (case insensitive):
+- `w/watt`, `kw/kilowatt`
+- `wh/watthour`, `kwh`,`kilowatthour`
+- `c/celsius`,`f/fahrenheit`,`k/kelvin`
+
+
+## Python Client
+
+```python
+from xbos.services import mdal
+client = mdal.BOSSWAVEMDALClient("scratch.ns")
+query = {
+    "Composition": ["temp"],
+    "Selectors": [mdal.MEAN],
+    "Variables": [
+        {"Name": "temp",
+         "Definition": "SELECT ?temp_uuid WHERE { ?temp rdf:type/rdfs:subClassOf* brick:Temperature_Sensor . ?temp bf:uuid ?temp_uuid . };",
+         "Units": "C",
+        },
+    ],
+    "Time": {
+        "T0": "2017-07-21 00:00:00",
+        "T1": "2017-08-21 00:00:00",
+        "WindowSize": '30m',
+        "Aligned": True,
+    },
+    "Params": {
+        "Statistical": False,
+        "Window": True,
+    },
+}
+resp = client.do_query(query,timeout=300)
+df = resp['df']
+print df.describe()
+```
