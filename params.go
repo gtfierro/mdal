@@ -87,18 +87,9 @@ type Query struct {
 	Variables []VarParams
 	// the temporal parameters of the data query
 	Time TimeParams
-	// general data query parameters
-	Params Params
 	// internal parameters
 	// the resolved variables; these are the timeseries we are fetching
 	uuids     []uuid.UUID
 	selectors []Selector
 	units     []Unit
-}
-
-type Params struct {
-	// if true, BTrDB aligned statistical query
-	Statistical bool
-	// if true, BTrDB aligned window query
-	Window bool
 }

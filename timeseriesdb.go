@@ -30,7 +30,6 @@ type dataRequest struct {
 	selector Selector
 	units    Unit
 	time     TimeParams
-	params   Params
 	done     func()
 	ts       *Timeseries
 }
@@ -118,7 +117,7 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 	// statistical modifiers to each variable/uuid separately
 	numMap := make(map[uuid.Array]int)
 	for idx, uuid := range q.uuids {
-		if q.Time.Aligned && (q.Params.Window || q.Params.Statistical) {
+		if q.Time.Aligned && (q.Time.WindowSize > 0) {
 			if q.selectors[idx].DoMin() {
 				numMap[uuid.Array()]++
 			}
@@ -150,7 +149,7 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 	// if the query requests aligned data (and its window/statistical),
 	// then we need to pre-generate the timestamps for the windows so that
 	// we can insert the statistical data appropriately
-	if q.Time.Aligned && (q.Params.Window || q.Params.Statistical) {
+	if q.Time.Aligned && q.Time.WindowSize > 0 {
 		iv_time := newIOvec(true)
 		windowStart := q.Time.T0.UnixNano()
 		bound := q.Time.T1.UnixNano()
@@ -174,7 +173,6 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 			selector: q.selectors[uuidIdx],
 			units:    q.units[uuidIdx],
 			time:     q.Time,
-			params:   q.Params,
 			done:     wg.Done,
 			ts:       ts,
 		}
@@ -195,16 +193,12 @@ func (b *btrdbClient) handleRequest(req dataRequest) error {
 	}
 
 	defer req.done()
-	if req.params.Statistical {
-		log.Critical("NOT IMPLEMENTED YET")
-	} else if req.params.Window {
+	if req.time.WindowSize > 0 {
 		if err := b.getWindow(req); err != nil {
 			return err
 		}
-	} else { // raw!
-		if err := b.getData(req); err != nil {
-			return err
-		}
+	} else if err := b.getData(req); err != nil { // raw
+		return err
 	}
 	return nil
 }
@@ -333,6 +327,9 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 }
 
 func (b *btrdbClient) primeCache(req dataRequest) {
+	if req.time.WindowSize == 0 {
+		req.time.WindowSize = uint64(req.time.T1.Sub(req.time.T0).Nanoseconds())
+	}
 	stream, _, err := b.getStream(req.uuid)
 	if err != nil {
 		return
@@ -342,9 +339,10 @@ func (b *btrdbClient) primeCache(req dataRequest) {
 	statpoints, generations, errchan := stream.Windows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), req.time.WindowSize, 0, 0)
 	for range statpoints {
 	}
-	<-generations
+	for range generations {
+	}
 	if err := <-errchan; err != nil {
-		log.Error(err)
+		log.Error(errors.Wrapf(err, "T0 %s T1 %s", req.time.T0, req.time.T1))
 		return
 	}
 
