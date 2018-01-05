@@ -3,9 +3,9 @@ package main
 import (
 	"time"
 
+	"github.com/immesys/bw2bind"
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
-	"gopkg.in/immesys/bw2bind.v5"
 )
 
 type QueryTimeParams struct {
@@ -62,9 +62,13 @@ func RunBosswave(c *Core) error {
 		}
 
 		if obj, ok := po.(bw2bind.MsgPackPayloadObject); !ok {
-			return errors.New("Payload 2.0.10.3 was not MsgPack")
+			err = errors.New("Payload 2.0.10.3 was not MsgPack")
+			log.Error(err)
+			return err
 		} else if err := obj.ValueInto(&inq); err != nil {
-			return errors.Wrap(err, "Could not unmarshal into a mdal query")
+			err = errors.Wrap(err, "Could not unmarshal into a mdal query")
+			log.Error(err)
+			return err
 		}
 
 		// construct query
@@ -76,11 +80,15 @@ func RunBosswave(c *Core) error {
 		query.Variables = inq.Variables
 		t0, err := time.Parse("2006-01-02 15:04:05", inq.Time.T0)
 		if err != nil {
-			return errors.Wrapf(err, "Could not parse T0 (%s)", inq.Time.T0)
+			err = errors.Wrapf(err, "Could not parse T0 (%s)", inq.Time.T0)
+			log.Error(err)
+			return err
 		}
 		t1, err := time.Parse("2006-01-02 15:04:05", inq.Time.T1)
 		if err != nil {
-			return errors.Wrapf(err, "Could not parse T1 (%s)", inq.Time.T1)
+			err = errors.Wrapf(err, "Could not parse T1 (%s)", inq.Time.T1)
+			log.Error(err)
+			return err
 		}
 		query.Time.T0 = t0
 		query.Time.T1 = t1
@@ -91,13 +99,17 @@ func RunBosswave(c *Core) error {
 
 		ts, err := c.HandleQuery(&query)
 		if err != nil {
-			return errors.Wrap(err, "Could not run query")
+			err = errors.Wrap(err, "Could not run query")
+			log.Error(err)
+			return err
 		}
 
 		// serialize the result
 		packed, err := ts.msg.MarshalPacked()
 		if err != nil {
-			return errors.Wrap(err, "Error marshalling results")
+			err = errors.Wrap(err, "Error marshalling results")
+			log.Error(err)
+			return err
 		}
 		log.Debug(len(packed))
 		log.Debugf("%+v", query)
@@ -107,13 +119,17 @@ func RunBosswave(c *Core) error {
 		resp.Nonce = inq.Nonce
 		po, err = bw2bind.CreateMsgPackPayloadObject(ResponsePID, resp)
 		if err != nil {
-			return errors.Wrap(err, "Error marshalling results (msgpack)")
+			err = errors.Wrap(err, "Error marshalling results (msgpack)")
+			log.Error(err)
+			return err
 		}
 
 		fromVK := msg.From
 		signaluri := fromVK[:len(fromVK)-1]
 		if err := iface.PublishSignal(signaluri, po); err != nil {
-			return errors.Wrapf(err, "Could not publish on %s", iface.SignalURI(signaluri))
+			err = errors.Wrapf(err, "Could not publish on %s", iface.SignalURI(signaluri))
+			log.Error(err)
+			return err
 		}
 
 		return nil
