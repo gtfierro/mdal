@@ -100,7 +100,6 @@ func (srv *httpServer) handleQuery(rw http.ResponseWriter, req *http.Request, ps
 	for _, s := range inq.Selectors {
 		query.Selectors = append(query.Selectors, Selector(s))
 	}
-	query.Params = inq.Params
 	query.Variables = inq.Variables
 	t0, err := time.Parse("2006-01-02 15:04:05", inq.Time.T0)
 	if err != nil {
@@ -114,7 +113,7 @@ func (srv *httpServer) handleQuery(rw http.ResponseWriter, req *http.Request, ps
 	}
 	query.Time.T0 = t0
 	query.Time.T1 = t1
-	query.Time.WindowSize = inq.Time.WindowSize
+	//query.Time.WindowSize = inq.Time.WindowSize
 	query.Time.Aligned = inq.Time.Aligned
 
 	log.Info("Serving query", query)
