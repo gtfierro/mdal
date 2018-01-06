@@ -16,7 +16,7 @@ func init() {
 }
 
 func start(c *cli.Context) error {
-	err := configor.New(&configor.Config{Verbose: true}).Load(&Config, c.String("config"))
+	err := configor.Load(&Config, c.String("config"))
 	if err != nil {
 		log.Error(err)
 		return err
