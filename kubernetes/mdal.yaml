@@ -1,0 +1,28 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+    name: mdal
+    labels:
+        app: mdal
+spec:
+    serviceName: "mdal"
+    replicas: 1
+    selector:
+        matchLabels:
+            app: mdal
+    template:
+        metadata:
+            labels:
+                app: mdal
+        spec:
+            containers:
+                - name: mdal
+                  image:  gtfierro/mdal:0.0.2
+                  imagePullPolicy: Always
+                  volumeMounts:
+                    - name: mdal
+                      mountPath: /etc/mdal
+            volumes:
+                - name: mdal
+                  hostPath:
+                    path: /etc/mdal
