@@ -1,15 +1,9 @@
-btrdb:
-    address: "10.106.37.66:4410"
+BTrDBAddress: "localhost:4410"
+Namespace: xbos/mdal
+BW2_DEFAULT_ENTITY: myentity.ent
 
-bosswave:
-    namespace: scratch.ns
-    entityfile: corbusier_archiver.ent
+EmbeddedBrick: false
+HodConfig: hodconfig/hodconfig.yaml
 
-embeddedbrick:
-    enabled: true
-    hodconfig: hodconfig/hodconfig.yaml
-    buildingfile: hodconfig/ciee.ttl
-
-remotebrick:
-    enabled: false
-    baseuri: ciee/hod
+RemoteBrick: true
+BaseURI: xbos/hod
