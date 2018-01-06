@@ -42,11 +42,11 @@ const ResponsePIDString = "2.0.10.4"
 var ResponsePID = bw2bind.FromDotForm(ResponsePIDString)
 
 func RunBosswave(c *Core) error {
-	client := bw2bind.ConnectOrExit(Config.BOSSWAVE.Address)
-	client.SetEntityFileOrExit(Config.BOSSWAVE.Entityfile)
+	client := bw2bind.ConnectOrExit(Config.BW2_AGENT)
+	client.SetEntityFileOrExit(Config.BW2_DEFAULT_ENTITY)
 	client.OverrideAutoChainTo(true)
 
-	svc := client.RegisterService(Config.BOSSWAVE.Namespace, "s.mdal")
+	svc := client.RegisterService(Config.Namespace, "s.mdal")
 	iface := svc.RegisterInterface("_", "i.mdal")
 	queryChan, err := client.Subscribe(&bw2bind.SubscribeParams{
 		URI: iface.SlotURI("query"),

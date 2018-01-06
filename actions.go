@@ -7,7 +7,6 @@ import (
 
 	"github.com/gtfierro/mdal/version"
 
-	"github.com/jinzhu/configor"
 	"github.com/urfave/cli"
 )
 
@@ -15,12 +14,15 @@ func init() {
 	fmt.Println(version.LOGO)
 }
 
+var Config *config
+
 func start(c *cli.Context) error {
-	err := configor.Load(&Config, c.String("config"))
+	cfg, err := readConfig(c.String("config"))
 	if err != nil {
 		log.Error(err)
 		return err
 	}
+	Config = cfg
 	core := newCore()
 	go func() {
 		log.Fatal(http.ListenAndServe("localhost:6060", nil))

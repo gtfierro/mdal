@@ -36,7 +36,7 @@ type dataRequest struct {
 
 func connectBTrDB() *btrdbClient {
 	b := &btrdbClient{
-		address:    Config.BTrDB.Address,
+		address:    Config.BTrDBAddress,
 		queries:    make(chan dataRequest),
 		workerpool: make(chan chan dataRequest, maxWorkers),
 	}

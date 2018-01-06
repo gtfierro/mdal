@@ -1,34 +1,79 @@
 package main
 
-import ()
+import (
+	"github.com/spf13/viper"
+)
 
-var Config = struct {
-	BTrDB struct {
-		Address string `required:"true"`
-	}
+type config struct {
+	BTrDBAddress string
 
-	BOSSWAVE struct {
-		Address    string `required:"true" env:"BW2_AGENT"`
-		Entityfile string `required:"true" env:"BW2_DEFAULT_ENTITY"`
-		Namespace  string `required:"true"`
-	}
+	BW2_AGENT          string
+	BW2_DEFAULT_ENTITY string
+	Namespace          string
 
-	HTTP struct {
-		Port          string `default:"8989" env:"MDAL_PORT"`
-		StaticPath    string `default:"static" env:"MDAL_STATIC"`
-		ListenAddress string `default:"0.0.0.0" env:"MDAL_ADDRESS"`
-		UseIPv6       bool   `default:"false"`
-		TLSHost       string `default:""`
-	}
+	HTTPEnabled   bool
+	Port          string
+	StaticPath    string
+	ListenAddress string
+	UseIPv6       bool
+	TLSHost       string
 
-	EmbeddedBrick struct {
-		Enabled      bool
-		HodConfig    string `default:"hodconfig.yaml"`
-		BuildingFile string `default:"building.ttl"`
-	}
+	EmbeddedBrick bool
+	HodConfig     string
 
-	RemoteBrick struct {
-		Enabled bool
-		BaseURI string
+	RemoteBrick bool
+	BaseURI     string
+}
+
+func init() {
+	viper.SetDefault("BTrDBAddress", "localhost:4410")
+	viper.SetDefault("BW2_AGENT", "172.17.0.1:28589")
+	viper.SetDefault("Namespace", "scratch.ns/mdal")
+
+	viper.SetDefault("HTTPEnabled", false)
+	viper.SetDefault("Port", "8989")
+	viper.SetDefault("StaticPath", ".")
+	viper.SetDefault("ListenAddress", "localhost")
+	viper.SetDefault("UseIPv6", false)
+	viper.SetDefault("TLSHost", "")
+
+	viper.SetDefault("EmbeddedBrick", true)
+	viper.SetDefault("HodConfig", "hodconfig")
+
+	viper.SetDefault("RemoteBrick", false)
+	viper.SetDefault("BaseURI", "")
+
+	viper.SetConfigName("mdal")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("/etc/mdal")
+}
+
+func readConfig(file string) (*config, error) {
+	if len(file) > 0 {
+		viper.SetConfigFile(file)
 	}
-}{}
+	if err := viper.ReadInConfig(); err != nil {
+		return nil, err
+	}
+	viper.AutomaticEnv()
+
+	c := &config{
+		BTrDBAddress:       viper.GetString("BTrDBAddress"),
+		BW2_AGENT:          viper.GetString("BW2_AGENT"),
+		BW2_DEFAULT_ENTITY: viper.GetString("BW2_DEFAULT_ENTITY"),
+		Namespace:          viper.GetString("Namespace"),
+
+		HTTPEnabled:   viper.GetBool("HTTPEnabled"),
+		Port:          viper.GetString("Port"),
+		StaticPath:    viper.GetString("StaticPath"),
+		ListenAddress: viper.GetString("ListenAddress"),
+		UseIPv6:       viper.GetBool("UseIPv6"),
+		TLSHost:       viper.GetString("TLSHost"),
+
+		EmbeddedBrick: viper.GetBool("EmbeddedBrick"),
+		HodConfig:     viper.GetString("HodConfig"),
+		RemoteBrick:   viper.GetBool("RemoteBrick"),
+		BaseURI:       viper.GetString("BaseURI"),
+	}
+	return c, nil
+}

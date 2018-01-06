@@ -22,8 +22,8 @@ type httpServer struct {
 func RunHTTP(c *Core) error {
 	server := &httpServer{
 		c:          c,
-		port:       Config.HTTP.Port,
-		staticpath: Config.HTTP.StaticPath,
+		port:       Config.Port,
+		staticpath: Config.StaticPath,
 	}
 
 	log.Info("Static Path", server.staticpath)
@@ -37,12 +37,12 @@ func RunHTTP(c *Core) error {
 	)
 
 	// check if ipv6
-	if Config.HTTP.UseIPv6 {
+	if Config.UseIPv6 {
 		nettype = "tcp6"
-		addrString = "[" + Config.HTTP.ListenAddress + "]:" + server.port
+		addrString = "[" + Config.ListenAddress + "]:" + server.port
 	} else {
 		nettype = "tcp4"
-		addrString = Config.HTTP.ListenAddress + ":" + server.port
+		addrString = Config.ListenAddress + ":" + server.port
 	}
 
 	address, err := net.ResolveTCPAddr(nettype, addrString)
@@ -54,10 +54,10 @@ func RunHTTP(c *Core) error {
 	log.Notice("Starting HTTP Server on ", addrString)
 
 	var srv *http.Server
-	if Config.HTTP.TLSHost != "" {
+	if Config.TLSHost != "" {
 		m := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist(Config.HTTP.TLSHost),
+			HostPolicy: autocert.HostWhitelist(Config.TLSHost),
 			Cache:      autocert.DirCache("certs"),
 		}
 		srv = &http.Server{

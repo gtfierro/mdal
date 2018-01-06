@@ -238,9 +238,10 @@ func checkAccess(bwclient *bw2.BW2Client, key, uri string) (uris []string, hasPe
 		return
 	}
 
-	scanURI := uri + "/*/s.mdal/!meta/lastalive"                                  // (C*)
-	queryURI := uri + "/s.mdal/_/i.mdal/slot/query"                               // (P)
-	responseURI := uri + "/s.giles/_/i.archiver/signal/" + key_vk[:len(key_vk)-1] // (C)
+	fmt.Println(key_vk)
+	scanURI := uri + "/*/s.mdal/!meta/lastalive"                             // (C*)
+	queryURI := uri + "/s.mdal/_/i.mdal/slot/query"                          // (P)
+	responseURI := uri + "/s.mdal/_/i.mdal/signal/" + key_vk[:len(key_vk)-1] // (C)
 	uris = []string{scanURI, queryURI, responseURI}
 	hasPermission = []bool{false, false, false}
 

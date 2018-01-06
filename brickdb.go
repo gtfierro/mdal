@@ -91,9 +91,9 @@ func (local localBrickClient) DoQuery(ctx context.Context, params *VarParams) (e
 
 func connectHodDB() brickClient {
 
-	if Config.EmbeddedBrick.Enabled {
+	if Config.EmbeddedBrick {
 		// start database
-		cfg, err := hodconfig.ReadConfig(Config.EmbeddedBrick.HodConfig)
+		cfg, err := hodconfig.ReadConfig(Config.HodConfig)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -108,11 +108,11 @@ func connectHodDB() brickClient {
 
 		// TODO: add db.Close on exit?
 		// idea: hoddb is *always* ad hoc and in-memory. Load in file then query as part of a session?
-	} else if Config.RemoteBrick.Enabled {
-		client := bw2.ConnectOrExit(Config.BOSSWAVE.Address)
+	} else if Config.RemoteBrick {
+		client := bw2.ConnectOrExit(Config.BW2_AGENT)
 		client.OverrideAutoChainTo(true)
-		client.SetEntityFileOrExit(Config.BOSSWAVE.Entityfile)
-		hc, err := hod.NewBW2Client(client, Config.RemoteBrick.BaseURI)
+		client.SetEntityFileOrExit(Config.BW2_DEFAULT_ENTITY)
+		hc, err := hod.NewBW2Client(client, Config.BaseURI)
 		if err != nil {
 			log.Fatal(err)
 		}
