@@ -74,10 +74,6 @@ query = {
         "WindowSize": '30m',
         "Aligned": True,
     },
-    "Params": {
-        "Statistical": False,
-        "Window": True,
-    },
 }
 resp = client.do_query(query,timeout=300)
 df = resp['df']

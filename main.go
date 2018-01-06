@@ -2,13 +2,12 @@ package main
 
 import (
 	//"fmt"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	//"time"
 
-	"github.com/jinzhu/configor"
+	"github.com/gtfierro/mdal/version"
 	"github.com/op/go-logging"
+	"github.com/urfave/cli"
 )
 
 // logger
@@ -25,57 +24,24 @@ func init() {
 
 func main() {
 
-	configor.Load(&Config, "config.yml")
+	app := cli.NewApp()
+	app.Name = "mdal"
+	app.Version = version.Release
+	app.Usage = "Metadata-driven data access layer for HodDB + BTrDB"
 
-	c := newCore()
-
-	//t0, _ := time.Parse("2006-01-02 15:04:05", "2017-10-23 00:00:30")
-	//t1, _ := time.Parse("2006-01-02 15:04:05", "2017-10-13 00:00:00")
-	//q := Query{
-	//	Composition: []string{"temp", "4d6e251a-48e1-3bc0-907d-7d5440c34bb9"},
-	//	Selectors:   []Selector{MEAN, MEAN},
-	//	Variables: []VarParams{
-	//		VarParams{
-	//			Name:       "temp",
-	//			Definition: "SELECT ?temp_uuid WHERE { ?temp rdf:type/rdfs:subClassOf* brick:Temperature_Sensor . ?temp bf:uuid ?temp_uuid . };",
-	//			Units:      "F",
-	//		},
-	//	},
-	//	Time: TimeParams{
-	//		T0:         t0,
-	//		T1:         t1,
-	//		WindowSize: 36000000000,
-	//		Aligned:    true,
-	//	},
-	//	Params: Params{
-	//		Statistical: false,
-	//		Window:      true,
-	//	},
-	//}
-	go func() {
-		log.Fatal(http.ListenAndServe("localhost:6060", nil))
-	}()
-
-	//ts, err := c.HandleQuery(&q)
-	//if err != nil {
-	//	log.Error(err)
-	//} else {
-	//	log.Debugf("%+v", ts.Info())
-	//}
-	//b1, err := ts.msg.Marshal()
-	//if err != nil {
-	//	log.Error(err)
-	//} else {
-	//	log.Info(len(b1))
-	//}
-	//b2, err := ts.msg.MarshalPacked()
-	//if err != nil {
-	//	log.Error(err)
-	//} else {
-	//	log.Info(len(b2))
-	//}
-	//fmt.Println(q)
-
-	go RunHTTP(c)
-	log.Fatal(RunBosswave(c))
+	app.Commands = []cli.Command{
+		{
+			Name:   "start",
+			Usage:  "Start MDAL",
+			Action: start,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "config, c",
+					Usage: "Path to mdal config file",
+					Value: "config.yml",
+				},
+			},
+		},
+	}
+	app.Run(os.Args)
 }

@@ -22,13 +22,13 @@ var Config = struct {
 	}
 
 	EmbeddedBrick struct {
-		Enabled      bool   `required:"true"`
+		Enabled      bool
 		HodConfig    string `default:"hodconfig.yaml"`
 		BuildingFile string `default:"building.ttl"`
 	}
 
 	RemoteBrick struct {
-		Enabled bool `required:"true"`
+		Enabled bool
 		BaseURI string
 	}
 }{}
