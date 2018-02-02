@@ -97,20 +97,21 @@ func RunBosswave(c *Core) error {
 			query.Selectors = append(query.Selectors, Selector(s))
 		}
 		query.Variables = inq.Variables
-		t0, err := time.Parse("2006-01-02 15:04:05", inq.Time.T0)
+		t0, err := time.Parse("2006-01-02 15:04:05 MST", inq.Time.T0)
 		if err != nil {
 			err = errors.Wrapf(err, "Could not parse T0 (%s)", inq.Time.T0)
 			log.Error(err)
 			publishErr(inq.Nonce, signaluri, err)
 			return err
 		}
-		t1, err := time.Parse("2006-01-02 15:04:05", inq.Time.T1)
+		t1, err := time.Parse("2006-01-02 15:04:05 MST", inq.Time.T1)
 		if err != nil {
 			err = errors.Wrapf(err, "Could not parse T1 (%s)", inq.Time.T1)
 			log.Error(err)
 			publishErr(inq.Nonce, signaluri, err)
 			return err
 		}
+		log.Warning("range: ", t0, t1)
 		//requestedRange := dots.NewTimeRange(t0, t1)
 		query.Time.T0 = t0
 		query.Time.T1 = t1
