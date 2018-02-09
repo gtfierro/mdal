@@ -20,7 +20,9 @@ func (w worker) start() {
 			w.b.workerpool <- w.localWork
 			select {
 			case req := <-w.localWork:
-				w.b.handleRequest(req)
+				if err := w.b.handleRequest(req); err != nil {
+					log.Error(err, req)
+				}
 			case <-w.quit:
 				return
 			}
