@@ -85,7 +85,7 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 // TODO: extract related streams
 func (core *Core) primeCache(q *Query) {
 	// this is just a guess as to what would be a good size.
-	biggerWindow := q.Time.WindowSize << 5
+	biggerWindow := q.Time.WindowSize << 2
 
 	dataRange := q.Time.T1.Sub(q.Time.T0)
 

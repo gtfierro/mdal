@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	data "github.com/gtfierro/mdal/capnp"
 	"github.com/pkg/errors"
 	capnp "zombiezen.com/go/capnproto2"
@@ -127,24 +129,8 @@ func (t *Timeseries) AddAlignedStream(idx int, iv_times, iv_values *iovec) error
 
 	val_count := iv_values.count()
 
-	// we have fewer values returned from the timeseries database then we do
-	// possible timestamps. Here we trim the rest off
-	if val_count < times.Len() {
-		newtimes, err := t.collection.NewTimes(int32(val_count))
-		if err != nil {
-			return errors.Wrap(err, "Could not reallocate time array")
-		}
-		for idx := 0; idx < newtimes.Len(); idx++ {
-			newtimes.Set(idx, times.At(idx))
-		}
-		if err := t.collection.SetTimes(newtimes); err != nil {
-			return errors.Wrap(err, "Could not assign time array")
-		}
-		times = newtimes
-	}
-
 	stream := t.list.At(idx)
-	values, err := stream.NewValues(int32(val_count))
+	values, err := stream.NewValues(int32(times.Len()))
 	if err != nil {
 		return errors.Wrap(err, "Could not allocate value array")
 	}
@@ -155,7 +141,6 @@ func (t *Timeseries) AddAlignedStream(idx int, iv_times, iv_values *iovec) error
 	align := func(idx int, time int64) {
 		// check if timestamp for data stream @ idx is within colIdx window.
 		// If it is, add the data here. If its not, we look elsewhere
-		//log.Debug(times.Len(), colIdx, idx)
 		if colIdx >= times.Len() {
 			return // skip the extra ones
 		}
@@ -171,6 +156,9 @@ func (t *Timeseries) AddAlignedStream(idx int, iv_times, iv_values *iovec) error
 		colIdx += 1
 	}
 	iv_times.iterTimes(align)
+	for i := val_count; i < times.Len(); i++ {
+		values.Set(i, math.NaN())
+	}
 
 	if err := stream.SetValues(values); err != nil {
 		return errors.Wrap(err, "Could not assign value array")
@@ -218,4 +206,39 @@ func (t *Timeseries) Info() TimeseriesInfo {
 		Streams:    infos,
 	}
 	return info
+}
+
+// we have fewer values returned from the timeseries database then we do
+// possible timestamps. Here we trim the rest off
+func (t *Timeseries) Trim() error {
+	times, err := t.collection.Times()
+	if err != nil {
+		return errors.Wrap(err, "Could not retrieve times field")
+	}
+
+	var maxvalues int32 = math.MaxInt32
+	for idx := 0; idx < t.list.Len(); idx++ {
+		stream := t.list.At(idx)
+		if stream.HasValues() {
+			v, _ := stream.Values()
+			if int32(v.Len()) < maxvalues {
+				maxvalues = int32(v.Len())
+			}
+		}
+	}
+	if maxvalues == math.MaxInt32 {
+		return nil //no-op
+	}
+
+	newtimes, err := t.collection.NewTimes(maxvalues)
+	if err != nil {
+		return errors.Wrap(err, "Could not reallocate time array")
+	}
+	for idx := 0; idx < newtimes.Len(); idx++ {
+		newtimes.Set(idx, times.At(idx))
+	}
+	if err := t.collection.SetTimes(newtimes); err != nil {
+		return errors.Wrap(err, "Could not assign time array")
+	}
+	return nil
 }

@@ -139,6 +139,9 @@ func RunBosswave(c *Core) error {
 			publishErr(inq.Nonce, signaluri, err)
 			return err
 		}
+		if err := ts.Trim(); err != nil {
+			return errors.Wrap(err, "Could not trim timeseries")
+		}
 
 		// serialize the result
 		packed, err := ts.msg.MarshalPacked()

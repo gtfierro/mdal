@@ -167,7 +167,8 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 	wg.Add(len(q.uuids))
 	idx := 0
 	for uuidIdx, uuid := range q.uuids {
-		log.Debug(uuid.String(), uuidIdx, idx, len(q.uuids))
+		//TODO: log request going in
+		//log.Debug(uuid.String(), uuidIdx, idx, len(q.uuids))
 		req := dataRequest{
 			uuid:     uuid,
 			idx:      idx,
