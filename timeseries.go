@@ -125,8 +125,26 @@ func (t *Timeseries) AddAlignedStream(idx int, iv_times, iv_values *iovec) error
 		return errors.Wrap(err, "Could not retrieve collection times")
 	}
 
+	val_count := iv_values.count()
+
+	// we have fewer values returned from the timeseries database then we do
+	// possible timestamps. Here we trim the rest off
+	if val_count < times.Len() {
+		newtimes, err := t.collection.NewTimes(int32(val_count))
+		if err != nil {
+			return errors.Wrap(err, "Could not reallocate time array")
+		}
+		for idx := 0; idx < newtimes.Len(); idx++ {
+			newtimes.Set(idx, times.At(idx))
+		}
+		if err := t.collection.SetTimes(newtimes); err != nil {
+			return errors.Wrap(err, "Could not assign time array")
+		}
+		times = newtimes
+	}
+
 	stream := t.list.At(idx)
-	values, err := stream.NewValues(int32(times.Len()))
+	values, err := stream.NewValues(int32(val_count))
 	if err != nil {
 		return errors.Wrap(err, "Could not allocate value array")
 	}
