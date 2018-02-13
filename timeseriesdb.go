@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"math"
 	"sync"
 	"time"
 
@@ -270,14 +271,22 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 	statpoints, generations, errchan := stream.Windows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), req.time.WindowSize, 0, 0)
 	for p := range statpoints {
 		iv_time.addTime(p.Time)
+		addWithNaN := func(io *iovec, p btrdb.StatPoint, val float64) {
+			if p.Count == 0 {
+				io.addValue(math.NaN())
+			} else {
+				io.addValue(val)
+			}
+		}
+
 		if req.selector.DoMin() {
-			iv_min_values.addValue(ConvertFrom(p.Min, units, req.units))
+			addWithNaN(iv_min_values, p, ConvertFrom(p.Min, units, req.units))
 		}
 		if req.selector.DoMax() {
-			iv_max_values.addValue(ConvertFrom(p.Max, units, req.units))
+			addWithNaN(iv_max_values, p, ConvertFrom(p.Max, units, req.units))
 		}
 		if req.selector.DoMean() {
-			iv_mean_values.addValue(ConvertFrom(p.Mean, units, req.units))
+			addWithNaN(iv_mean_values, p, ConvertFrom(p.Mean, units, req.units))
 		}
 		if req.selector.DoCount() {
 			iv_count_values.addValue(float64(p.Count))
