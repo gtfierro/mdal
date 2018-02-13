@@ -268,7 +268,7 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 	defer cancel()
 
 	// fetch the data from btrdb and add to internal buffers
-	statpoints, generations, errchan := stream.Windows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), req.time.WindowSize, 0, 0)
+	statpoints, generations, errchan := stream.Windows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), req.time.WindowSize, 30, 0)
 	for p := range statpoints {
 		iv_time.addTime(p.Time)
 		addWithNaN := func(io *iovec, p btrdb.StatPoint, val float64) {
