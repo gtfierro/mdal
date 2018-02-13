@@ -272,8 +272,8 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 	statpoints, generations, errchan := stream.Windows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), req.time.WindowSize, 30, 0)
 	for p := range statpoints {
 		iv_time.addTime(p.Time)
-		addWithNaN := func(io *iovec, p btrdb.StatPoint, val float64) {
-			if p.Count == 0 {
+		addWithNaN := func(io *iovec, point btrdb.StatPoint, val float64) {
+			if point.Count == 0 {
 				io.addValue(math.NaN())
 			} else {
 				io.addValue(val)
