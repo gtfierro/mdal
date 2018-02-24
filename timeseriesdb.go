@@ -116,23 +116,23 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 
 	// number of streams per UUID. Its all different because we can apply different
 	// statistical modifiers to each variable/uuid separately
-	numMap := make(map[uuid.Array]int)
-	for idx, uuid := range q.uuids {
+	numMap := make(map[int]int)
+	for idx := range q.uuids {
 		if q.Time.Aligned && (q.Time.WindowSize > 0) {
 			if q.selectors[idx].DoMin() {
-				numMap[uuid.Array()]++
+				numMap[idx]++
 			}
 			if q.selectors[idx].DoMax() {
-				numMap[uuid.Array()]++
+				numMap[idx]++
 			}
 			if q.selectors[idx].DoMean() {
-				numMap[uuid.Array()]++
+				numMap[idx]++
 			}
 			if q.selectors[idx].DoCount() {
-				numMap[uuid.Array()]++
+				numMap[idx]++
 			}
 		} else {
-			numMap[uuid.Array()]++
+			numMap[idx]++
 		}
 	}
 
@@ -178,7 +178,7 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 			done:     wg.Done,
 			ts:       ts,
 		}
-		idx += numMap[uuid.Array()]
+		idx += numMap[uuidIdx]
 		b.queries <- req
 	}
 	wg.Wait()
