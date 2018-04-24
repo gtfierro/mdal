@@ -18,6 +18,8 @@ type VarParams struct {
 	// variable in the query. All other returned variables will be considered
 	// additional metadata for that uuid
 	Definition string
+	// alternatively specify a list of UUIDs
+	UUIDS []string
 	// Units to retrieve this variable as (e.g. F, C, %RH, ppm, etc)
 	Units string
 	// internal field: the uuids this variable resolves to

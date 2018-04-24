@@ -28,10 +28,21 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 	for i, vardec := range q.Variables {
-		if err := core.brick.DoQuery(ctx, &vardec); err != nil {
-			log.Error(err)
-			return nil, errors.Wrap(err, "Could not complete Brick query")
+		if vardec.Definition != "" {
+			if err := core.brick.DoQuery(ctx, &vardec); err != nil {
+				log.Error(err)
+				return nil, errors.Wrap(err, "Could not complete Brick query")
+			}
 		}
+
+		for _, id := range vardec.UUIDS {
+			parsed := uuid.Parse(id)
+			if parsed == nil {
+				return nil, errors.New("Invalid UUID returned")
+			}
+			vardec.uuids = append(vardec.uuids, parsed)
+		}
+
 		q.Variables[i] = vardec
 		varnames[vardec.Name] = vardec
 	}
