@@ -74,9 +74,13 @@ func connectBTrDB() *btrdbClient {
 func (b *btrdbClient) getStream(streamuuid uuid.UUID) (stream *btrdb.Stream, units Unit, err error) {
 	_stream, found := b.streamCache.Load(streamuuid.Array())
 	if found {
+		var ok bool
 		stream = _stream.(*btrdb.Stream)
 		_units, _ := b.unitCache.Load(streamuuid.Array())
-		units = _units.(Unit)
+		units, ok = _units.(Unit)
+		if !ok {
+			units = NO_UNITS
+		}
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
