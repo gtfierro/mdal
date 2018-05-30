@@ -7,6 +7,8 @@ import (
 	"time"
 
 	//data "github.com/gtfierro/mdal/capnp"
+	opentracing "github.com/opentracing/opentracing-go"
+	otl "github.com/opentracing/opentracing-go/log"
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	"gopkg.in/btrdb.v4"
@@ -27,6 +29,7 @@ type btrdbClient struct {
 
 type dataRequest struct {
 	uuid     uuid.UUID
+	ctx      context.Context
 	idx      int
 	selector Selector
 	units    Unit
@@ -116,8 +119,10 @@ func (b *btrdbClient) getStream(streamuuid uuid.UUID) (stream *btrdb.Stream, uni
 	return
 }
 
-func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
+func (b *btrdbClient) DoQuery(ctx context.Context, q Query) (*Timeseries, error) {
 
+	tsspan, ctx := opentracing.StartSpanFromContext(ctx, "BTrDB")
+	defer tsspan.Finish()
 	// number of streams per UUID. Its all different because we can apply different
 	// statistical modifiers to each variable/uuid separately
 	numMap := make(map[int]int)
@@ -151,6 +156,7 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 		return ts, err
 	}
 
+	alignspan := opentracing.StartSpan("GenerateAligned", opentracing.ChildOf(tsspan.Context()))
 	// if the query requests aligned data (and its window/statistical),
 	// then we need to pre-generate the timestamps for the windows so that
 	// we can insert the statistical data appropriately
@@ -166,6 +172,7 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 		ts.AddCollectionTimes(iv_time)
 		iv_time.free()
 	}
+	alignspan.Finish()
 
 	var wg sync.WaitGroup
 	wg.Add(len(q.uuids))
@@ -180,6 +187,7 @@ func (b *btrdbClient) DoQuery(q Query) (*Timeseries, error) {
 			units:    q.units[uuidIdx],
 			time:     q.Time,
 			done:     wg.Done,
+			ctx:      ctx,
 			ts:       ts,
 		}
 		idx += numMap[uuidIdx]
@@ -210,6 +218,8 @@ func (b *btrdbClient) handleRequest(req dataRequest) error {
 }
 
 func (b *btrdbClient) getData(req dataRequest) error {
+	span, ctx := opentracing.StartSpanFromContext(req.ctx, "RawData")
+	defer span.Finish()
 	stream, units, err := b.getStream(req.uuid)
 	if err != nil {
 		return err
@@ -220,9 +230,10 @@ func (b *btrdbClient) getData(req dataRequest) error {
 	iv_time := newIOvec(true)
 	iv_values := newIOvec(false)
 
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(req.ctx, timeout)
 	defer cancel()
+
+	dataspan := opentracing.StartSpan("btrdbfetch", opentracing.ChildOf(span.Context()))
 	rawpoints, generations, errchan := stream.RawValues(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), 0)
 	for p := range rawpoints {
 		iv_time.addTime(p.Time)
@@ -231,9 +242,16 @@ func (b *btrdbClient) getData(req dataRequest) error {
 	<-generations
 	if err := <-errchan; err != nil {
 		log.Error(err)
+		dataspan.Finish()
 		return errors.Wrapf(err, "Could not fetch rawdata for stream %s", stream.UUID())
 	}
+	dataspan.Finish()
 
+	aspan := opentracing.StartSpan("addstream", opentracing.ChildOf(span.Context()))
+	aspan.LogFields(
+		otl.Int("windowsize", int(req.time.WindowSize)),
+	)
+	defer aspan.Finish()
 	// now we need to put into the capnproto struct
 	err = req.ts.AddStreamWithTime(req.idx, iv_time, iv_values)
 	iv_time.free()
@@ -242,6 +260,8 @@ func (b *btrdbClient) getData(req dataRequest) error {
 }
 
 func (b *btrdbClient) getWindow(req dataRequest) error {
+	span, ctx := opentracing.StartSpanFromContext(req.ctx, "WindowQuery")
+	defer span.Finish()
 	stream, units, err := b.getStream(req.uuid)
 	if err != nil {
 		return err
@@ -268,11 +288,11 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 		iv_count_values = newIOvec(false)
 	}
 
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(req.ctx, timeout)
 	defer cancel()
 
 	// fetch the data from btrdb and add to internal buffers
+	bspan := opentracing.StartSpan("btrdbfetch", opentracing.ChildOf(span.Context()))
 	statpoints, generations, errchan := stream.Windows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), req.time.WindowSize, 30, 0)
 	for p := range statpoints {
 		iv_time.addTime(p.Time)
@@ -300,11 +320,18 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 	<-generations
 	if err := <-errchan; err != nil {
 		log.Error(err)
+		bspan.Finish()
 		return errors.Wrapf(err, "Could not fetch stat data for stream %s", stream.UUID())
 	}
+	bspan.Finish()
 
 	subidx := 0
 
+	aspan := opentracing.StartSpan("addstream", opentracing.ChildOf(span.Context()))
+	aspan.LogFields(
+		otl.Int("windowsize", int(req.time.WindowSize)),
+	)
+	defer aspan.Finish()
 	log.Info("add stream", req.idx, "var", subidx, "offset", req.idx+subidx)
 	if req.selector.DoMin() {
 		if err = req.ts.AddAlignedStream(req.idx+subidx, iv_time, iv_min_values); err != nil {

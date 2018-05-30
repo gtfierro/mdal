@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	opentracing "github.com/opentracing/opentracing-go"
 	uuid "github.com/pborman/uuid"
 	"github.com/pkg/errors"
 )
@@ -19,18 +21,23 @@ func newCore() *Core {
 		brick:      connectHodDB(),
 	}
 
+	// report out usage
+
 	return c
 }
 
-func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
+func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error) {
 	// Resolve the variables and collect the UUIDs
 	var varnames = make(map[string]VarParams)
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
+
+	brickspan, _ := opentracing.StartSpanFromContext(ctx, "BrickResolve")
 	for i, vardec := range q.Variables {
 		if vardec.Definition != "" {
 			if err := core.brick.DoQuery(ctx, &vardec); err != nil {
 				log.Error(err)
+				brickspan.Finish()
 				return nil, errors.Wrap(err, "Could not complete Brick query")
 			}
 		}
@@ -38,7 +45,8 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 		for _, id := range vardec.UUIDS {
 			parsed := uuid.Parse(id)
 			if parsed == nil {
-				return nil, errors.New("Invalid UUID returned")
+				brickspan.Finish()
+				return nil, fmt.Errorf("Invalid UUID returned %s", id)
 			}
 			vardec.uuids = append(vardec.uuids, parsed)
 		}
@@ -46,6 +54,7 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 		q.Variables[i] = vardec
 		varnames[vardec.Name] = vardec
 	}
+	brickspan.Finish()
 
 	// form the set of uuids used for the data matrix
 	var uuids []uuid.UUID
@@ -61,7 +70,7 @@ func (core *Core) HandleQuery(q *Query) (*Timeseries, error) {
 		} else if len(id) == 36 {
 			parsed := uuid.Parse(id)
 			if parsed == nil {
-				return nil, errors.New("Invalid UUID returned")
+				return nil, fmt.Errorf("Invalid UUID returned %s", id)
 			}
 			uuids = append(uuids, parsed)
 			selectors = append(selectors, q.Selectors[idx])

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	//"github.com/gtfierro/pundat/dots"
 	"github.com/immesys/bw2bind"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 )
@@ -70,6 +72,9 @@ func RunBosswave(c *Core) error {
 	}
 
 	handleQuery := func(msg *bw2bind.SimpleMessage) error {
+		span, ctx := opentracing.StartSpanFromContext(context.Background(), "BOSSWAVEQuery")
+		defer span.Finish()
+
 		var inq mdalQuery
 		var query Query
 		var resp mdalResponse
@@ -132,7 +137,7 @@ func RunBosswave(c *Core) error {
 
 		log.Info("Serving query", query)
 
-		ts, err := c.HandleQuery(&query)
+		ts, err := c.HandleQuery(ctx, &query)
 		if err != nil {
 			err = errors.Wrap(err, "Could not run query")
 			log.Error(err)
@@ -162,6 +167,8 @@ func RunBosswave(c *Core) error {
 			return err
 		}
 
+		pubspan := opentracing.StartSpan("publishresponse", opentracing.ChildOf(span.Context()))
+		defer pubspan.Finish()
 		if err := iface.PublishSignal(signaluri, po); err != nil {
 			err = errors.Wrapf(err, "Could not publish on %s", iface.SignalURI(signaluri))
 			log.Error(err)

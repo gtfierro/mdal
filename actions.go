@@ -6,6 +6,8 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/gtfierro/mdal/version"
+	"github.com/immesys/sysdigtracer"
+	opentracing "github.com/opentracing/opentracing-go"
 
 	"github.com/urfave/cli"
 )
@@ -17,6 +19,10 @@ func init() {
 var Config *config
 
 func start(c *cli.Context) error {
+	tracer := sysdigtracer.New()
+	opentracing.SetGlobalTracer(tracer)
+	sp := opentracing.StartSpan("root")
+	defer sp.Finish()
 	cfg, err := readConfig(c.String("config"))
 	if err != nil {
 		log.Error(err)

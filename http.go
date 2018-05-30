@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"net"
@@ -118,7 +119,7 @@ func (srv *httpServer) handleQuery(rw http.ResponseWriter, req *http.Request, ps
 
 	log.Info("Serving query", query)
 
-	ts, err := srv.c.HandleQuery(&query)
+	ts, err := srv.c.HandleQuery(context.Background(), &query)
 	if err != nil {
 		handleErr(errors.Wrap(err, "Could not run query"))
 		return
