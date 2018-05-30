@@ -182,9 +182,12 @@ func RunBosswave(c *Core) error {
 	for msg := range queryChan {
 		//go handleBOSSWAVEQuery(msg)
 		// TODO: jobqueue like timeseriesdb.go
-		if err := handleQuery(msg); err != nil {
-			log.Error(err)
-		}
+		msg := msg
+		go func() {
+			if err := handleQuery(msg); err != nil {
+				log.Error(err)
+			}
+		}()
 	}
 
 	return nil
