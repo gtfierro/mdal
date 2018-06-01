@@ -7,7 +7,7 @@ service MDAL {
 
 message DataQueryRequest {
     repeated string composition = 1;
-    repeated Selector selectors = 2;
+    map<string, Aggregation> aggregation = 2;
     map<string, Variable> variables = 3;
     TimeParams time = 4;
 }
@@ -26,7 +26,11 @@ message TimeParams {
     bool aligned = 4;
 }
 
-enum Selector {
+message Aggregation {
+    repeated AggFunc funcs = 1;
+}
+
+enum AggFunc {
     RAW = 0;
     MEAN = 1;
     MIN = 2;
@@ -41,7 +45,7 @@ message DataQueryResponse {
     repeated Triple triples = 1;
     repeated bytes uuids = 2;
     // apache arrow serialized response
-    repeated bytes arrow = 3;
+    bytes arrow = 3;
 }
 
 message Triple {
