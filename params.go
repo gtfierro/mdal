@@ -76,6 +76,18 @@ const (
 	MIN
 	MAX
 	COUNT
+	SUM
+)
+
+type AggFunc uint
+
+const (
+	RAW_FUNC AggFunc = iota
+	MEAN_FUNC
+	MIN_FUNC
+	MAX_FUNC
+	COUNT_FUNC
+	SUM_FUNC
 )
 
 type Query struct {
@@ -84,9 +96,11 @@ type Query struct {
 	// this will return just the raw stream. If doing a statistical/window query,
 	// you can choose to return all statistical dimensions (min, mean, max, count),
 	// a subset of them,
-	Selectors []Selector
+	Selectors   []Selector
+	Aggregation map[string][]AggFunc
 	// definitions of variables to be used in the matrix composition
-	Variables []VarParams
+	Variables  []VarParams
+	Variables_ map[string]VarParams
 	// the temporal parameters of the data query
 	Time TimeParams
 	// internal parameters

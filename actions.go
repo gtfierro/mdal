@@ -34,6 +34,7 @@ func start(c *cli.Context) error {
 		log.Fatal(http.ListenAndServe("localhost:6060", nil))
 	}()
 	go RunHTTP(core)
+	NewServer(core, "localhost:8088")
 	log.Fatal(RunBosswave(core))
 	return nil
 }
