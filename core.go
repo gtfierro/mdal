@@ -89,10 +89,10 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 	q.uuids = uuids
 	q.selectors = selectors
 	q.units = units
-	ts, err := core.timeseries.DoQuery(*q)
 	if err == nil {
 		go core.primeCache(q)
 	}
+	ts, err := core.timeseries.DoQuery(ctx, *q)
 	return ts, err
 }
 

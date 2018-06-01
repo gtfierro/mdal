@@ -101,6 +101,13 @@ func RunBosswave(c *Core) error {
 		for _, s := range inq.Selectors {
 			query.Selectors = append(query.Selectors, Selector(s))
 		}
+		if len(query.Selectors) != len(query.Composition) {
+			err = errors.New("Need same # of selectors as in composition")
+			log.Error(err)
+			publishErr(inq.Nonce, signaluri, err)
+			return err
+		}
+
 		query.Variables = inq.Variables
 		t0, err := time.Parse("2006-01-02 15:04:05 MST", inq.Time.T0)
 		if err != nil {

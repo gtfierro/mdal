@@ -163,7 +163,9 @@ func (t *Timeseries) AddAlignedStream(idx int, iv_times, iv_values *iovec) error
 	if err := stream.SetValues(values); err != nil {
 		return errors.Wrap(err, "Could not assign value array")
 	}
-
+	if t.list.Len() <= idx {
+		return errors.Wrapf(err, "Index %d out of range %d", idx, t.list.Len())
+	}
 	t.list.Set(idx, stream)
 
 	return nil

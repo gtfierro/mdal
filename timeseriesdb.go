@@ -202,7 +202,7 @@ func (b *btrdbClient) handleRequest(req dataRequest) error {
 
 	// if this is true, then this is a cache priming query
 	if req.ts == nil {
-		b.primeCache(req)
+		//b.primeCache(req)
 		return nil
 	}
 
