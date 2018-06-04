@@ -28,14 +28,14 @@ func newCore() *Core {
 
 func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error) {
 	// Resolve the variables and collect the UUIDs
-	var varnames = make(map[string]VarParams)
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	var varnames = make(map[string]*VarParams)
+	ctx, cancel := context.WithTimeout(ctx, MAX_TIMEOUT)
 	defer cancel()
 
 	brickspan, _ := opentracing.StartSpanFromContext(ctx, "BrickResolve")
-	for i, vardec := range q.Variables {
+	for i, vardec := range q.Variables_ {
 		if vardec.Definition != "" {
-			if err := core.brick.DoQuery(ctx, &vardec); err != nil {
+			if err := core.brick.DoQuery(ctx, vardec); err != nil {
 				log.Error(err)
 				brickspan.Finish()
 				return nil, errors.Wrap(err, "Could not complete Brick query")
@@ -51,7 +51,7 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 			vardec.uuids = append(vardec.uuids, parsed)
 		}
 
-		q.Variables[i] = vardec
+		q.Variables_[i] = vardec
 		varnames[vardec.Name] = vardec
 	}
 	brickspan.Finish()
@@ -64,7 +64,7 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 		if vardec, found := varnames[id]; found {
 			uuids = append(uuids, vardec.uuids...)
 			for range vardec.uuids {
-				selectors = append(selectors, q.Selectors[idx])
+				selectors = append(selectors, translate(q.Aggregation[vardec.Name][0]))
 				units = append(units, ParseUnit(vardec.Units))
 			}
 		} else if len(id) == 36 {

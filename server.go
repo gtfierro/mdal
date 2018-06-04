@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mdalgrpc "github.com/gtfierro/mdal/proto"
+	opentracing "github.com/opentracing/opentracing-go"
 	uuid "github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -39,10 +40,12 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 	var query Query
 	var resp mdalgrpc.DataQueryResponse
 	ctx := grpcsrv.Context()
+	span, ctx := opentracing.StartSpanFromContext(ctx, "GRPCDataRequest")
+	defer span.Finish()
 
 	query.Composition = req.Composition
 	query.Aggregation = make(map[string][]AggFunc, len(query.Composition))
-	query.Variables_ = make(map[string]VarParams, len(query.Composition))
+	query.Variables_ = make(map[string]*VarParams, len(query.Composition))
 
 	// collect parameters for each requested UUID
 	for _, componentName := range query.Composition {
@@ -64,7 +67,7 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 		} else if definition, found := req.Variables[componentName]; !found || definition == nil {
 			return fmt.Errorf("Variable %s in Composition needs definition", componentName)
 		} else {
-			p := VarParams{
+			p := &VarParams{
 				Name:       definition.Name,
 				Definition: definition.Definition,
 				Units:      definition.Units,
@@ -72,7 +75,8 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 			for _, uuidbytes := range definition.Uuids {
 				var arr *uuid.Array
 				if err := arr.UnmarshalBinary(uuidbytes); err != nil {
-					return fmt.Errorf("UUID %v is invalid", uuidbytes)
+					resp.Msg = fmt.Errorf("UUID %v is invalid", uuidbytes).Error()
+					return grpcsrv.Send(&resp)
 				}
 				p.uuids = append(p.uuids, arr.UUID())
 			}
@@ -83,11 +87,13 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 	// parse time parameters
 	start, err := time.Parse(time.RFC3339, req.Time.Start)
 	if err != nil {
-		return errors.Wrapf(err, "Could not parse start timestamp %s", req.Time.Start)
+		resp.Msg = errors.Wrapf(err, "Could not parse start timestamp %s", req.Time.Start).Error()
+		return grpcsrv.Send(&resp)
 	}
 	end, err := time.Parse(time.RFC3339, req.Time.End)
 	if err != nil {
-		return errors.Wrapf(err, "Could not parse end timestamp %s", req.Time.End)
+		resp.Msg = errors.Wrapf(err, "Could not parse end timestamp %s", req.Time.End).Error()
+		return grpcsrv.Send(&resp)
 	}
 	query.Time.T0 = start
 	query.Time.T1 = end
@@ -95,34 +101,44 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 	if req.Time.Window != "" {
 		dur, err := ParseDuration(req.Time.Window)
 		if err != nil {
-			err = errors.Wrapf(err, "Could not parse Window (%s)", req.Time.Window)
-			return err
+			resp.Msg = errors.Wrapf(err, "Could not parse Window (%s)", req.Time.Window).Error()
+			return grpcsrv.Send(&resp)
 		}
 		query.Time.WindowSize = uint64(dur.Nanoseconds())
 	} else {
 		query.Time.WindowSize = 0
 	}
 	query.Time.Aligned = req.Time.Aligned
+	fmt.Printf("%+v\n", query)
 
 	// run query
 	ts, err := srv.core.HandleQuery(ctx, &query)
 	if err != nil {
-		return errors.Wrap(err, "Could not run query")
+		resp.Msg = errors.Wrap(err, "Could not run query").Error()
+		return grpcsrv.Send(&resp)
 	}
 
+	packspan := opentracing.StartSpan("GRPCDataRequest", opentracing.ChildOf(span.Context()))
 	packed, err := ts.msg.MarshalPacked()
 	if err != nil {
-		return errors.Wrap(err, "Could not marshal timeseries")
+		packspan.Finish()
+		resp.Msg = errors.Wrap(err, "Could not marshal timeseries").Error()
+		return grpcsrv.Send(&resp)
 	}
 	resp.Arrow = packed
+	packspan.Finish()
 	for _, tsuuid := range query.uuids {
 		uuidbytes, _ := tsuuid.Array().MarshalBinary()
 		resp.Uuids = append(resp.Uuids, uuidbytes)
 	}
 
+	sendspan := opentracing.StartSpan("GRPCDataRequest", opentracing.ChildOf(span.Context()))
 	if err = grpcsrv.Send(&resp); err != nil {
+		sendspan.Finish()
 		return err
 	}
+	sendspan.Finish()
+	log.Warning("size", len(packed))
 
 	return nil
 }

@@ -46,6 +46,7 @@ message DataQueryResponse {
     repeated bytes uuids = 2;
     // apache arrow serialized response
     bytes arrow = 3;
+    string msg = 4;
 }
 
 message Triple {

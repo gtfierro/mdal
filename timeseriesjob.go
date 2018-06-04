@@ -22,6 +22,7 @@ func (w worker) start() {
 			case req := <-w.localWork:
 				if err := w.b.handleRequest(req); err != nil {
 					log.Error(err, req)
+					req.errs <- err
 				}
 			case <-w.quit:
 				return

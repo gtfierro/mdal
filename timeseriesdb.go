@@ -14,7 +14,8 @@ import (
 	"gopkg.in/btrdb.v4"
 )
 
-var timeout = time.Second * 300
+var MAX_TIMEOUT = time.Second * 300
+var _MAX_WINDOW_BEFORE_CHUNK = int64(24000)
 var errStreamNotExist = errors.New("Stream does not exist")
 var maxWorkers = 200
 
@@ -35,6 +36,7 @@ type dataRequest struct {
 	units    Unit
 	time     TimeParams
 	done     func()
+	errs     chan error
 	ts       *Timeseries
 }
 
@@ -86,7 +88,7 @@ func (b *btrdbClient) getStream(streamuuid uuid.UUID) (stream *btrdb.Stream, uni
 		}
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), MAX_TIMEOUT)
 	defer cancel()
 	stream = b.conn.StreamFromUUID(streamuuid)
 	if exists, existsErr := stream.Exists(ctx); existsErr != nil {
@@ -120,6 +122,10 @@ func (b *btrdbClient) getStream(streamuuid uuid.UUID) (stream *btrdb.Stream, uni
 }
 
 func (b *btrdbClient) DoQuery(ctx context.Context, q Query) (*Timeseries, error) {
+
+	if len(q.uuids) == 0 {
+		return nil, errors.New("No UUIDs")
+	}
 
 	tsspan, ctx := opentracing.StartSpanFromContext(ctx, "BTrDB")
 	defer tsspan.Finish()
@@ -175,7 +181,9 @@ func (b *btrdbClient) DoQuery(ctx context.Context, q Query) (*Timeseries, error)
 	alignspan.Finish()
 
 	var wg sync.WaitGroup
+	finished := make(chan bool)
 	wg.Add(len(q.uuids))
+	var errChan = make(chan error, len(q.uuids))
 	idx := 0
 	for uuidIdx, uuid := range q.uuids {
 		//TODO: log request going in
@@ -187,13 +195,23 @@ func (b *btrdbClient) DoQuery(ctx context.Context, q Query) (*Timeseries, error)
 			units:    q.units[uuidIdx],
 			time:     q.Time,
 			done:     wg.Done,
+			errs:     errChan,
 			ctx:      ctx,
 			ts:       ts,
 		}
 		idx += numMap[uuidIdx]
 		b.queries <- req
 	}
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(finished)
+	}()
+	select {
+	case <-finished:
+	case err := <-errChan:
+		log.Error(err)
+		return ts, err
+	}
 
 	return ts, nil
 }
@@ -230,7 +248,7 @@ func (b *btrdbClient) getData(req dataRequest) error {
 	iv_time := newIOvec(true)
 	iv_values := newIOvec(false)
 
-	ctx, cancel := context.WithTimeout(req.ctx, timeout)
+	ctx, cancel := context.WithTimeout(req.ctx, MAX_TIMEOUT)
 	defer cancel()
 
 	dataspan := opentracing.StartSpan("btrdbfetch", opentracing.ChildOf(span.Context()))
@@ -288,42 +306,82 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 		iv_count_values = newIOvec(false)
 	}
 
-	ctx, cancel := context.WithTimeout(req.ctx, timeout)
+	ctx, cancel := context.WithTimeout(req.ctx, MAX_TIMEOUT)
 	defer cancel()
 
 	// fetch the data from btrdb and add to internal buffers
 	bspan := opentracing.StartSpan("btrdbfetch", opentracing.ChildOf(span.Context()))
-	statpoints, generations, errchan := stream.Windows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), req.time.WindowSize, 30, 0)
-	for p := range statpoints {
-		iv_time.addTime(p.Time)
-		addWithNaN := func(io *iovec, point btrdb.StatPoint, val float64) {
-			if point.Count == 0 {
-				io.addValue(math.NaN())
-			} else {
-				io.addValue(val)
+	start := req.time.T0.UnixNano()
+	end := req.time.T1.UnixNano()
+	chunksize := end - start
+	//totaltimespan := uint8(math.Log2(float64(end-start)) + 1)
+	//statpoints, generations, errchan := stream.AlignedWindows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), totaltimespan, 0)
+
+	//totalpoints := uint64(0)
+	numchunks := int64(1)
+	totalpoints := int64(math.Max(1, float64(end-start)/float64(req.time.WindowSize)))
+
+	//for _ := range statpoints {
+	//	// total timespan in nanoseconds / window size in nanoseconds = number of windows
+	//	// p.Count / numwindows = avg # of points per window
+	//	numwindows := uint64(math.Max(1, float64(end-start)/float64(req.time.WindowSize)))
+	//	//log.Warning(p.Count, p.Count/numwindows, numwindows, numwindows*22*16, "bytes", req.uuid.String())
+	//	totalpoints += numwindows
+	//	<-generations
+	//	if err := <-errchan; err != nil {
+	//		log.Error(err)
+	//		bspan.Finish()
+	//		return errors.Wrapf(err, "Could not fetch stat data for stream %s", stream.UUID())
+	//	}
+	//}
+
+	// TODO: GRPC has max 4mb limit?
+	if totalpoints > _MAX_WINDOW_BEFORE_CHUNK {
+		// totalpoints / max window = # of windows we need
+		numchunks = int64(totalpoints/_MAX_WINDOW_BEFORE_CHUNK) + 1
+		chunksize = (end - start) / _MAX_WINDOW_BEFORE_CHUNK
+		//log.Warning("NEED TO CHUNK", numchunks*16, chunksize)
+	}
+
+	retrieveStart := time.Now()
+	for i := int64(0); i < numchunks; i++ {
+		t0 := start + i*chunksize
+		t1 := start + (i+1)*chunksize
+		//log.Infof("Chunk %d/%d (%s)", i+1, numchunks, stream.UUID())
+		//log.Warning(start < end, t0, t1, t0 < t1, start, end)
+		statpoints, generations, errchan := stream.Windows(ctx, t0, t1, req.time.WindowSize, 30, 0)
+		for p := range statpoints {
+			iv_time.addTime(p.Time)
+			addWithNaN := func(io *iovec, point btrdb.StatPoint, val float64) {
+				if point.Count == 0 {
+					io.addValue(math.NaN())
+				} else {
+					io.addValue(val)
+				}
+			}
+
+			if req.selector.DoMin() {
+				addWithNaN(iv_min_values, p, ConvertFrom(p.Min, units, req.units))
+			}
+			if req.selector.DoMax() {
+				addWithNaN(iv_max_values, p, ConvertFrom(p.Max, units, req.units))
+			}
+			if req.selector.DoMean() {
+				addWithNaN(iv_mean_values, p, ConvertFrom(p.Mean, units, req.units))
+			}
+			if req.selector.DoCount() {
+				iv_count_values.addValue(float64(p.Count))
 			}
 		}
-
-		if req.selector.DoMin() {
-			addWithNaN(iv_min_values, p, ConvertFrom(p.Min, units, req.units))
+		<-generations
+		if err := <-errchan; err != nil {
+			log.Error(err, t0, t1)
+			bspan.Finish()
+			return errors.Wrapf(err, "Could not fetch stat data for stream %s", stream.UUID())
 		}
-		if req.selector.DoMax() {
-			addWithNaN(iv_max_values, p, ConvertFrom(p.Max, units, req.units))
-		}
-		if req.selector.DoMean() {
-			addWithNaN(iv_mean_values, p, ConvertFrom(p.Mean, units, req.units))
-		}
-		if req.selector.DoCount() {
-			iv_count_values.addValue(float64(p.Count))
-		}
-	}
-	<-generations
-	if err := <-errchan; err != nil {
-		log.Error(err)
-		bspan.Finish()
-		return errors.Wrapf(err, "Could not fetch stat data for stream %s", stream.UUID())
 	}
 	bspan.Finish()
+	retrieveDuration := time.Since(retrieveStart)
 
 	subidx := 0
 
@@ -332,7 +390,7 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 		otl.Int("windowsize", int(req.time.WindowSize)),
 	)
 	defer aspan.Finish()
-	log.Info("add stream", req.idx, "var", subidx, "offset", req.idx+subidx)
+	log.Infof("Retrieved stream %s (%d chunks) in %s", stream.UUID(), numchunks, retrieveDuration)
 	if req.selector.DoMin() {
 		if err = req.ts.AddAlignedStream(req.idx+subidx, iv_time, iv_min_values); err != nil {
 			return err
@@ -375,7 +433,7 @@ func (b *btrdbClient) primeCache(req dataRequest) {
 	if err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), MAX_TIMEOUT)
 	defer cancel()
 	statpoints, generations, errchan := stream.Windows(ctx, req.time.T0.UnixNano(), req.time.T1.UnixNano(), req.time.WindowSize, 0, 0)
 	for range statpoints {

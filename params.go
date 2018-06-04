@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	mdalgrpc "github.com/gtfierro/mdal/proto"
 	uuid "github.com/pborman/uuid"
 )
 
@@ -70,6 +71,23 @@ func (s Selector) DoCount() bool {
 	return (s & COUNT) == COUNT
 }
 
+func translate(agg AggFunc) Selector {
+	switch mdalgrpc.AggFunc(agg) {
+	case mdalgrpc.AggFunc_RAW:
+		return RAW
+	case mdalgrpc.AggFunc_MEAN:
+		return MEAN
+	case mdalgrpc.AggFunc_MIN:
+		return MIN
+	case mdalgrpc.AggFunc_MAX:
+		return MAX
+	case mdalgrpc.AggFunc_COUNT:
+		return COUNT
+	default:
+		return RAW
+	}
+}
+
 const (
 	RAW  = 0
 	MEAN = 1 << iota
@@ -100,7 +118,7 @@ type Query struct {
 	Aggregation map[string][]AggFunc
 	// definitions of variables to be used in the matrix composition
 	Variables  []VarParams
-	Variables_ map[string]VarParams
+	Variables_ map[string]*VarParams
 	// the temporal parameters of the data query
 	Time TimeParams
 	// internal parameters
