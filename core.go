@@ -29,7 +29,7 @@ func newCore() *Core {
 func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error) {
 	// Resolve the variables and collect the UUIDs
 	var varnames = make(map[string]VarParams)
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 300*time.Second)
 	defer cancel()
 
 	brickspan, _ := opentracing.StartSpanFromContext(ctx, "BrickResolve")
