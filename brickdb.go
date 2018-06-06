@@ -62,7 +62,7 @@ func (remote remoteBrickClient) DoQuery(ctx context.Context, params *VarParams) 
 }
 
 type localBrickClient struct {
-	db *hoddb.MultiDB
+	db *hoddb.HodDB
 }
 
 func (local localBrickClient) DoQuery(ctx context.Context, params *VarParams) (err error) {
@@ -97,7 +97,7 @@ func connectHodDB() brickClient {
 		if err != nil {
 			log.Fatal(err)
 		}
-		db, err := hoddb.NewMultiDB(cfg)
+		db, err := hoddb.NewHodDB(cfg)
 		if err != nil {
 			log.Fatal(err)
 		}
