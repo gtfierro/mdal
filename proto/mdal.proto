@@ -42,15 +42,23 @@ enum AggFunc {
 message DataQueryResponse {
     // TODO: need to transform this from list of triples to a map
     // keyed by UUID of the triples relevant to that UUID
-    repeated Triple triples = 1;
-    repeated bytes uuids = 2;
+    repeated Row rows = 1;
+    // variable name -> list of uuids
+    map<string, VarMap> mapping = 2;
+    // uuid -> triple context
+    repeated Row context = 3;
+
+    repeated bytes uuids = 4;
     // apache arrow serialized response
-    bytes arrow = 3;
-    string msg = 4;
+    bytes arrow = 5;
+    string error = 6;
 }
 
-message Triple {
-    string subject = 1;
-    string property = 2;
-    string value = 3;
+message Row {
+    bytes uuid = 1;
+    map<string, string> row = 2;
+}
+
+message VarMap {
+    repeated bytes uuids = 1;
 }

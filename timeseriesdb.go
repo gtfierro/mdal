@@ -339,7 +339,7 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 	if totalpoints > _MAX_WINDOW_BEFORE_CHUNK {
 		// totalpoints / max window = # of windows we need
 		numchunks = int64(totalpoints/_MAX_WINDOW_BEFORE_CHUNK) + 1
-		chunksize = (end - start) / _MAX_WINDOW_BEFORE_CHUNK
+		chunksize = (end - start) / numchunks
 		//log.Warning("NEED TO CHUNK", numchunks*16, chunksize)
 	}
 
@@ -347,9 +347,13 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 	for i := int64(0); i < numchunks; i++ {
 		t0 := start + i*chunksize
 		t1 := start + (i+1)*chunksize
-		//log.Infof("Chunk %d/%d (%s)", i+1, numchunks, stream.UUID())
-		//log.Warning(start < end, t0, t1, t0 < t1, start, end)
-		statpoints, generations, errchan := stream.Windows(ctx, t0, t1, req.time.WindowSize, 30, 0)
+		//log.Infof("Chunk %d/%d @ %d %d (%s)", i+1, numchunks, chunksize, end-start, stream.UUID())
+		//log.Warning(time.Unix(0, t0), "|", time.Unix(0, t1), "|", time.Unix(0, start), "|", time.Unix(0, end))
+		windowdepth := math.Log2(float64(req.time.WindowSize))
+		suggested_accuracy := uint8(math.Max(windowdepth-5, 30))
+		//log.Warning("cur window size", suggested_accuracy)
+
+		statpoints, generations, errchan := stream.Windows(ctx, t0, t1, req.time.WindowSize, suggested_accuracy, 0)
 		for p := range statpoints {
 			iv_time.addTime(p.Time)
 			addWithNaN := func(io *iovec, point btrdb.StatPoint, val float64) {

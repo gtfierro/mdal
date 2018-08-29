@@ -202,6 +202,14 @@ func (t *Timeseries) Info() TimeseriesInfo {
 		}
 		infos = append(infos, info)
 	}
+	if t.collection.HasTimes() {
+		v, _ := t.collection.Times()
+		numTimes := v.Len()
+		for idx, info := range infos {
+			info.NumTimes = numTimes
+			infos[idx] = info
+		}
+	}
 	info := TimeseriesInfo{
 		Aligned:    false,
 		NumStreams: t.list.Len(),

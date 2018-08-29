@@ -20,14 +20,14 @@ type uuidMap struct {
 }
 
 type brickClient interface {
-	DoQuery(ctx context.Context, params *VarParams) error
+	DoQuery(ctx context.Context, params *VarParams) ([]hoddb.ResultMap, error)
 }
 
 type remoteBrickClient struct {
 	client *hod.HodClientBW2
 }
 
-func (remote remoteBrickClient) DoQuery(ctx context.Context, params *VarParams) (err error) {
+func (remote remoteBrickClient) DoQuery(ctx context.Context, params *VarParams) (rows []hoddb.ResultMap, err error) {
 	// pass deadline from context to the hod client options as the timeout
 	var opts *hod.Options
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
@@ -41,52 +41,58 @@ func (remote remoteBrickClient) DoQuery(ctx context.Context, params *VarParams) 
 	// perform the Brick query
 	res, err := remote.client.DoQuery(params.Definition, opts)
 	if err != nil {
-		return err
+		return
 	}
 
 	// Add the UUIDs to the result. Error out if we get something that's not a UUID
 	// in a "uuid" field
 	for _, row := range res.Rows {
+		rows = append(rows, hoddb.ResultMap(row))
 		for k, v := range row {
 			if strings.Contains(k, "uuid") {
 				parsed := uuid.Parse(v.Value)
 				if parsed == nil {
-					return errors.New("Invalid UUID returned")
+					err = errors.New("Invalid UUID returned")
+					return
 				}
 				params.uuids = append(params.uuids, parsed)
+				params.Context[v.Value] = hoddb.ResultMap(row)
 			}
 		}
 	}
 
-	return err
+	return
 }
 
 type localBrickClient struct {
 	db *hoddb.HodDB
 }
 
-func (local localBrickClient) DoQuery(ctx context.Context, params *VarParams) (err error) {
+func (local localBrickClient) DoQuery(ctx context.Context, params *VarParams) (rows []hoddb.ResultMap, err error) {
 	// perform the Brick query
 	res, err := local.db.RunQueryString(params.Definition)
 	if err != nil {
-		return err
+		return
 	}
 
 	// Add the UUIDs to the result. Error out if we get something that's not a UUID
 	// in a "uuid" field
+	rows = res.Rows
 	for _, row := range res.Rows {
 		for k, v := range row {
 			if strings.Contains(k, "uuid") {
 				parsed := uuid.Parse(v.Value)
 				if parsed == nil {
-					return errors.New("Invalid UUID returned")
+					err = errors.New("Invalid UUID returned")
+					return
 				}
 				params.uuids = append(params.uuids, parsed)
+				params.Context[v.Value] = row
 			}
 		}
 	}
 
-	return nil
+	return
 }
 
 func connectHodDB() brickClient {

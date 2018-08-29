@@ -1,5 +1,5 @@
-APP?=mdal
-RELEASE?=0.0.6
+APP?=mdaldev
+RELEASE?=0.0.7
 COMMIT?=$(shell git rev-parse --short HEAD)
 PROJECT?=github.com/gtfierro/mdal
 PERSISTDIR?=/etc/mdal

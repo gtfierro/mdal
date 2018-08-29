@@ -33,14 +33,16 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 	defer cancel()
 
 	brickspan, _ := opentracing.StartSpanFromContext(ctx, "BrickResolve")
-	for i, vardec := range q.Variables_ {
+	for i, vardec := range q.Variables {
+		log.Infof("%v", vardec)
 		if vardec.Definition != "" {
-			if err := core.brick.DoQuery(ctx, vardec); err != nil {
+			if _, err := core.brick.DoQuery(ctx, vardec); err != nil {
 				log.Error(err)
 				brickspan.Finish()
 				return nil, errors.Wrap(err, "Could not complete Brick query")
 			}
 		}
+		log.Infof("%v", len(vardec.uuids))
 
 		for _, id := range vardec.UUIDS {
 			parsed := uuid.Parse(id)
@@ -51,16 +53,19 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 			vardec.uuids = append(vardec.uuids, parsed)
 		}
 
-		q.Variables_[i] = vardec
+		q.Variables[i] = vardec
 		varnames[vardec.Name] = vardec
+		log.Warning("len", len(vardec.uuids))
 	}
 	brickspan.Finish()
+	log.Debug(varnames)
 
 	// form the set of uuids used for the data matrix
 	var uuids []uuid.UUID
 	var selectors []Selector
 	var units []Unit
 	for idx, id := range q.Composition {
+		fmt.Println(id)
 		if vardec, found := varnames[id]; found {
 			uuids = append(uuids, vardec.uuids...)
 			for range vardec.uuids {
@@ -87,9 +92,12 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 
 	// perform the query
 	q.uuids = uuids
+	log.Warning("UUIDS", len(q.uuids))
 	q.selectors = selectors
 	q.units = units
+	log.Debug("to core")
 	ts, err := core.timeseries.DoQuery(ctx, *q)
+	log.Debug("from core")
 	//if err == nil {
 	//	go core.primeCache(q)
 	//}

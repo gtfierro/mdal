@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='mdal.proto',
   package='mdalgrpc',
   syntax='proto3',
-  serialized_pb=_b('\n\nmdal.proto\x12\x08mdalgrpc\"\xdc\x02\n\x10\x44\x61taQueryRequest\x12\x13\n\x0b\x63omposition\x18\x01 \x03(\t\x12@\n\x0b\x61ggregation\x18\x02 \x03(\x0b\x32+.mdalgrpc.DataQueryRequest.AggregationEntry\x12<\n\tvariables\x18\x03 \x03(\x0b\x32).mdalgrpc.DataQueryRequest.VariablesEntry\x12\"\n\x04time\x18\x04 \x01(\x0b\x32\x14.mdalgrpc.TimeParams\x1aI\n\x10\x41ggregationEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12$\n\x05value\x18\x02 \x01(\x0b\x32\x15.mdalgrpc.Aggregation:\x02\x38\x01\x1a\x44\n\x0eVariablesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.mdalgrpc.Variable:\x02\x38\x01\"J\n\x08Variable\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\ndefinition\x18\x02 \x01(\t\x12\r\n\x05uuids\x18\x03 \x03(\x0c\x12\r\n\x05units\x18\x04 \x01(\t\"I\n\nTimeParams\x12\r\n\x05start\x18\x01 \x01(\t\x12\x0b\n\x03\x65nd\x18\x02 \x01(\t\x12\x0e\n\x06window\x18\x03 \x01(\t\x12\x0f\n\x07\x61ligned\x18\x04 \x01(\x08\"/\n\x0b\x41ggregation\x12 \n\x05\x66uncs\x18\x01 \x03(\x0e\x32\x11.mdalgrpc.AggFunc\"T\n\x11\x44\x61taQueryResponse\x12!\n\x07triples\x18\x01 \x03(\x0b\x32\x10.mdalgrpc.Triple\x12\r\n\x05uuids\x18\x02 \x03(\x0c\x12\r\n\x05\x61rrow\x18\x03 \x01(\x0c\":\n\x06Triple\x12\x0f\n\x07subject\x18\x01 \x01(\t\x12\x10\n\x08property\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\t*B\n\x07\x41ggFunc\x12\x07\n\x03RAW\x10\x00\x12\x08\n\x04MEAN\x10\x01\x12\x07\n\x03MIN\x10\x02\x12\x07\n\x03MAX\x10\x03\x12\t\n\x05\x43OUNT\x10\x04\x12\x07\n\x03SUM\x10\x05\x32N\n\x04MDAL\x12\x46\n\tDataQuery\x12\x1a.mdalgrpc.DataQueryRequest\x1a\x1b.mdalgrpc.DataQueryResponse0\x01\x62\x06proto3')
+  serialized_pb=_b('\n\nmdal.proto\x12\x08mdalgrpc\"\xdc\x02\n\x10\x44\x61taQueryRequest\x12\x13\n\x0b\x63omposition\x18\x01 \x03(\t\x12@\n\x0b\x61ggregation\x18\x02 \x03(\x0b\x32+.mdalgrpc.DataQueryRequest.AggregationEntry\x12<\n\tvariables\x18\x03 \x03(\x0b\x32).mdalgrpc.DataQueryRequest.VariablesEntry\x12\"\n\x04time\x18\x04 \x01(\x0b\x32\x14.mdalgrpc.TimeParams\x1aI\n\x10\x41ggregationEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12$\n\x05value\x18\x02 \x01(\x0b\x32\x15.mdalgrpc.Aggregation:\x02\x38\x01\x1a\x44\n\x0eVariablesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.mdalgrpc.Variable:\x02\x38\x01\"J\n\x08Variable\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\ndefinition\x18\x02 \x01(\t\x12\r\n\x05uuids\x18\x03 \x03(\x0c\x12\r\n\x05units\x18\x04 \x01(\t\"I\n\nTimeParams\x12\r\n\x05start\x18\x01 \x01(\t\x12\x0b\n\x03\x65nd\x18\x02 \x01(\t\x12\x0e\n\x06window\x18\x03 \x01(\t\x12\x0f\n\x07\x61ligned\x18\x04 \x01(\x08\"/\n\x0b\x41ggregation\x12 \n\x05\x66uncs\x18\x01 \x03(\x0e\x32\x11.mdalgrpc.AggFunc\"\xfa\x01\n\x11\x44\x61taQueryResponse\x12\x1b\n\x04rows\x18\x01 \x03(\x0b\x32\r.mdalgrpc.Row\x12\x39\n\x07mapping\x18\x02 \x03(\x0b\x32(.mdalgrpc.DataQueryResponse.MappingEntry\x12\x1e\n\x07\x63ontext\x18\x03 \x03(\x0b\x32\r.mdalgrpc.Row\x12\r\n\x05uuids\x18\x04 \x03(\x0c\x12\r\n\x05\x61rrow\x18\x05 \x01(\x0c\x12\r\n\x05\x65rror\x18\x06 \x01(\t\x1a@\n\x0cMappingEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1f\n\x05value\x18\x02 \x01(\x0b\x32\x10.mdalgrpc.VarMap:\x02\x38\x01\"d\n\x03Row\x12\x0c\n\x04uuid\x18\x01 \x01(\x0c\x12#\n\x03row\x18\x02 \x03(\x0b\x32\x16.mdalgrpc.Row.RowEntry\x1a*\n\x08RowEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x17\n\x06VarMap\x12\r\n\x05uuids\x18\x01 \x03(\x0c*B\n\x07\x41ggFunc\x12\x07\n\x03RAW\x10\x00\x12\x08\n\x04MEAN\x10\x01\x12\x07\n\x03MIN\x10\x02\x12\x07\n\x03MAX\x10\x03\x12\t\n\x05\x43OUNT\x10\x04\x12\x07\n\x03SUM\x10\x05\x32N\n\x04MDAL\x12\x46\n\tDataQuery\x12\x1a.mdalgrpc.DataQueryRequest\x1a\x1b.mdalgrpc.DataQueryResponse0\x01\x62\x06proto3')
 )
 
 _AGGFUNC = _descriptor.EnumDescriptor(
@@ -56,8 +56,8 @@ _AGGFUNC = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=721,
-  serialized_end=787,
+  serialized_start=955,
+  serialized_end=1021,
 )
 _sym_db.RegisterEnumDescriptor(_AGGFUNC)
 
@@ -332,6 +332,43 @@ _AGGREGATION = _descriptor.Descriptor(
 )
 
 
+_DATAQUERYRESPONSE_MAPPINGENTRY = _descriptor.Descriptor(
+  name='MappingEntry',
+  full_name='mdalgrpc.DataQueryResponse.MappingEntry',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='mdalgrpc.DataQueryResponse.MappingEntry.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='mdalgrpc.DataQueryResponse.MappingEntry.value', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001')),
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=762,
+  serialized_end=826,
+)
+
 _DATAQUERYRESPONSE = _descriptor.Descriptor(
   name='DataQueryResponse',
   full_name='mdalgrpc.DataQueryResponse',
@@ -340,30 +377,51 @@ _DATAQUERYRESPONSE = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='triples', full_name='mdalgrpc.DataQueryResponse.triples', index=0,
+      name='rows', full_name='mdalgrpc.DataQueryResponse.rows', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='uuids', full_name='mdalgrpc.DataQueryResponse.uuids', index=1,
-      number=2, type=12, cpp_type=9, label=3,
+      name='mapping', full_name='mdalgrpc.DataQueryResponse.mapping', index=1,
+      number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='arrow', full_name='mdalgrpc.DataQueryResponse.arrow', index=2,
-      number=3, type=12, cpp_type=9, label=1,
+      name='context', full_name='mdalgrpc.DataQueryResponse.context', index=2,
+      number=3, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='uuids', full_name='mdalgrpc.DataQueryResponse.uuids', index=3,
+      number=4, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='arrow', full_name='mdalgrpc.DataQueryResponse.arrow', index=4,
+      number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='error', full_name='mdalgrpc.DataQueryResponse.error', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
-  nested_types=[],
+  nested_types=[_DATAQUERYRESPONSE_MAPPINGENTRY, ],
   enum_types=[
   ],
   options=None,
@@ -372,36 +430,97 @@ _DATAQUERYRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=575,
-  serialized_end=659,
+  serialized_start=576,
+  serialized_end=826,
 )
 
 
-_TRIPLE = _descriptor.Descriptor(
-  name='Triple',
-  full_name='mdalgrpc.Triple',
+_ROW_ROWENTRY = _descriptor.Descriptor(
+  name='RowEntry',
+  full_name='mdalgrpc.Row.RowEntry',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='subject', full_name='mdalgrpc.Triple.subject', index=0,
+      name='key', full_name='mdalgrpc.Row.RowEntry.key', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='property', full_name='mdalgrpc.Triple.property', index=1,
+      name='value', full_name='mdalgrpc.Row.RowEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001')),
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=886,
+  serialized_end=928,
+)
+
+_ROW = _descriptor.Descriptor(
+  name='Row',
+  full_name='mdalgrpc.Row',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
     _descriptor.FieldDescriptor(
-      name='value', full_name='mdalgrpc.Triple.value', index=2,
-      number=3, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
+      name='uuid', full_name='mdalgrpc.Row.uuid', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='row', full_name='mdalgrpc.Row.row', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[_ROW_ROWENTRY, ],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=828,
+  serialized_end=928,
+)
+
+
+_VARMAP = _descriptor.Descriptor(
+  name='VarMap',
+  full_name='mdalgrpc.VarMap',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='uuids', full_name='mdalgrpc.VarMap.uuids', index=0,
+      number=1, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
@@ -417,8 +536,8 @@ _TRIPLE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=661,
-  serialized_end=719,
+  serialized_start=930,
+  serialized_end=953,
 )
 
 _DATAQUERYREQUEST_AGGREGATIONENTRY.fields_by_name['value'].message_type = _AGGREGATION
@@ -429,13 +548,20 @@ _DATAQUERYREQUEST.fields_by_name['aggregation'].message_type = _DATAQUERYREQUEST
 _DATAQUERYREQUEST.fields_by_name['variables'].message_type = _DATAQUERYREQUEST_VARIABLESENTRY
 _DATAQUERYREQUEST.fields_by_name['time'].message_type = _TIMEPARAMS
 _AGGREGATION.fields_by_name['funcs'].enum_type = _AGGFUNC
-_DATAQUERYRESPONSE.fields_by_name['triples'].message_type = _TRIPLE
+_DATAQUERYRESPONSE_MAPPINGENTRY.fields_by_name['value'].message_type = _VARMAP
+_DATAQUERYRESPONSE_MAPPINGENTRY.containing_type = _DATAQUERYRESPONSE
+_DATAQUERYRESPONSE.fields_by_name['rows'].message_type = _ROW
+_DATAQUERYRESPONSE.fields_by_name['mapping'].message_type = _DATAQUERYRESPONSE_MAPPINGENTRY
+_DATAQUERYRESPONSE.fields_by_name['context'].message_type = _ROW
+_ROW_ROWENTRY.containing_type = _ROW
+_ROW.fields_by_name['row'].message_type = _ROW_ROWENTRY
 DESCRIPTOR.message_types_by_name['DataQueryRequest'] = _DATAQUERYREQUEST
 DESCRIPTOR.message_types_by_name['Variable'] = _VARIABLE
 DESCRIPTOR.message_types_by_name['TimeParams'] = _TIMEPARAMS
 DESCRIPTOR.message_types_by_name['Aggregation'] = _AGGREGATION
 DESCRIPTOR.message_types_by_name['DataQueryResponse'] = _DATAQUERYRESPONSE
-DESCRIPTOR.message_types_by_name['Triple'] = _TRIPLE
+DESCRIPTOR.message_types_by_name['Row'] = _ROW
+DESCRIPTOR.message_types_by_name['VarMap'] = _VARMAP
 DESCRIPTOR.enum_types_by_name['AggFunc'] = _AGGFUNC
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -484,24 +610,51 @@ Aggregation = _reflection.GeneratedProtocolMessageType('Aggregation', (_message.
 _sym_db.RegisterMessage(Aggregation)
 
 DataQueryResponse = _reflection.GeneratedProtocolMessageType('DataQueryResponse', (_message.Message,), dict(
+
+  MappingEntry = _reflection.GeneratedProtocolMessageType('MappingEntry', (_message.Message,), dict(
+    DESCRIPTOR = _DATAQUERYRESPONSE_MAPPINGENTRY,
+    __module__ = 'mdal_pb2'
+    # @@protoc_insertion_point(class_scope:mdalgrpc.DataQueryResponse.MappingEntry)
+    ))
+  ,
   DESCRIPTOR = _DATAQUERYRESPONSE,
   __module__ = 'mdal_pb2'
   # @@protoc_insertion_point(class_scope:mdalgrpc.DataQueryResponse)
   ))
 _sym_db.RegisterMessage(DataQueryResponse)
+_sym_db.RegisterMessage(DataQueryResponse.MappingEntry)
 
-Triple = _reflection.GeneratedProtocolMessageType('Triple', (_message.Message,), dict(
-  DESCRIPTOR = _TRIPLE,
+Row = _reflection.GeneratedProtocolMessageType('Row', (_message.Message,), dict(
+
+  RowEntry = _reflection.GeneratedProtocolMessageType('RowEntry', (_message.Message,), dict(
+    DESCRIPTOR = _ROW_ROWENTRY,
+    __module__ = 'mdal_pb2'
+    # @@protoc_insertion_point(class_scope:mdalgrpc.Row.RowEntry)
+    ))
+  ,
+  DESCRIPTOR = _ROW,
   __module__ = 'mdal_pb2'
-  # @@protoc_insertion_point(class_scope:mdalgrpc.Triple)
+  # @@protoc_insertion_point(class_scope:mdalgrpc.Row)
   ))
-_sym_db.RegisterMessage(Triple)
+_sym_db.RegisterMessage(Row)
+_sym_db.RegisterMessage(Row.RowEntry)
+
+VarMap = _reflection.GeneratedProtocolMessageType('VarMap', (_message.Message,), dict(
+  DESCRIPTOR = _VARMAP,
+  __module__ = 'mdal_pb2'
+  # @@protoc_insertion_point(class_scope:mdalgrpc.VarMap)
+  ))
+_sym_db.RegisterMessage(VarMap)
 
 
 _DATAQUERYREQUEST_AGGREGATIONENTRY.has_options = True
 _DATAQUERYREQUEST_AGGREGATIONENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
 _DATAQUERYREQUEST_VARIABLESENTRY.has_options = True
 _DATAQUERYREQUEST_VARIABLESENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
+_DATAQUERYRESPONSE_MAPPINGENTRY.has_options = True
+_DATAQUERYRESPONSE_MAPPINGENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
+_ROW_ROWENTRY.has_options = True
+_ROW_ROWENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
 
 _MDAL = _descriptor.ServiceDescriptor(
   name='MDAL',
@@ -509,8 +662,8 @@ _MDAL = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=789,
-  serialized_end=867,
+  serialized_start=1023,
+  serialized_end=1101,
   methods=[
   _descriptor.MethodDescriptor(
     name='DataQuery',
