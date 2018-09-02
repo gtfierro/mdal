@@ -20,7 +20,8 @@ type Server struct {
 }
 
 func NewServer(c *Core, laddr string) *Server {
-	grpcServer := grpc.NewServer(grpc.RPCCompressor(grpc.NewGZIPCompressor()))
+	// max 128mb messages
+	grpcServer := grpc.NewServer(grpc.MaxSendMsgSize(1024*1024*64), grpc.RPCCompressor(grpc.NewGZIPCompressor()))
 	srv := &Server{
 		grpcsrv: grpcServer,
 		core:    c,
