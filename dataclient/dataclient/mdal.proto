@@ -1,0 +1,64 @@
+syntax = "proto3";
+package mdalgrpc;
+
+service MDAL {
+    rpc DataQuery(DataQueryRequest) returns (stream DataQueryResponse);
+}
+
+message DataQueryRequest {
+    repeated string composition = 1;
+    map<string, Aggregation> aggregation = 2;
+    map<string, Variable> variables = 3;
+    TimeParams time = 4;
+}
+
+message Variable {
+    string name = 1;
+    string definition = 2;
+    repeated bytes uuids = 3;
+    string units = 4;
+}
+
+message TimeParams {
+    string start = 1;
+    string end = 2;
+    string window = 3;
+    bool aligned = 4;
+}
+
+message Aggregation {
+    repeated AggFunc funcs = 1;
+}
+
+enum AggFunc {
+    RAW = 0;
+    MEAN = 1;
+    MIN = 2;
+    MAX = 3;
+    COUNT = 4;
+    SUM = 5;
+}
+
+message DataQueryResponse {
+    // TODO: need to transform this from list of triples to a map
+    // keyed by UUID of the triples relevant to that UUID
+    repeated Row rows = 1;
+    // variable name -> list of uuids
+    map<string, VarMap> mapping = 2;
+    // uuid -> triple context
+    repeated Row context = 3;
+
+    repeated bytes uuids = 4;
+    // apache arrow serialized response
+    bytes arrow = 5;
+    string msg = 6;
+}
+
+message Row {
+    bytes uuid = 1;
+    map<string, string> row = 2;
+}
+
+message VarMap {
+    repeated bytes uuids = 1;
+}
