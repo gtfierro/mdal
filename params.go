@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	hoddb "github.com/gtfierro/hod/db"
 	mdalgrpc "github.com/gtfierro/mdal/proto"
 	uuid "github.com/pborman/uuid"
 )
@@ -21,6 +22,8 @@ type VarParams struct {
 	Definition string
 	// alternatively specify a list of UUIDs
 	UUIDS []string
+	// metadata for each UUID
+	Context map[string]hoddb.ResultMap
 	// Units to retrieve this variable as (e.g. F, C, %RH, ppm, etc)
 	Units string
 	// internal field: the uuids this variable resolves to
@@ -117,8 +120,7 @@ type Query struct {
 	Selectors   []Selector
 	Aggregation map[string][]AggFunc
 	// definitions of variables to be used in the matrix composition
-	Variables  []VarParams
-	Variables_ map[string]*VarParams
+	Variables map[string]*VarParams
 	// the temporal parameters of the data query
 	Time TimeParams
 	// internal parameters

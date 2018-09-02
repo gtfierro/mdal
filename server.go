@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	hoddb "github.com/gtfierro/hod/db"
 	mdalgrpc "github.com/gtfierro/mdal/proto"
 	opentracing "github.com/opentracing/opentracing-go"
 	uuid "github.com/pborman/uuid"
@@ -31,12 +32,14 @@ func NewServer(c *Core, laddr string) *Server {
 		panic(err)
 	}
 	go grpcServer.Serve(l)
+	log.Info("Serving on", laddr)
 
 	return srv
 }
 
 // TODO: context + tracing
 func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MDAL_DataQueryServer) error {
+	fmt.Printf("%+v\n", req)
 	var query Query
 	var resp mdalgrpc.DataQueryResponse
 	ctx := grpcsrv.Context()
@@ -45,7 +48,7 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 
 	query.Composition = req.Composition
 	query.Aggregation = make(map[string][]AggFunc, len(query.Composition))
-	query.Variables_ = make(map[string]*VarParams, len(query.Composition))
+	query.Variables = make(map[string]*VarParams, len(query.Composition))
 
 	// collect parameters for each requested UUID
 	for _, componentName := range query.Composition {
@@ -71,28 +74,32 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 				Name:       definition.Name,
 				Definition: definition.Definition,
 				Units:      definition.Units,
+				Context:    make(map[string]hoddb.ResultMap),
 			}
 			for _, uuidbytes := range definition.Uuids {
 				var arr *uuid.Array
 				if err := arr.UnmarshalBinary(uuidbytes); err != nil {
-					resp.Msg = fmt.Errorf("UUID %v is invalid", uuidbytes).Error()
+					resp.Error = fmt.Errorf("UUID %v is invalid", uuidbytes).Error()
+					log.Error(resp.Error)
 					return grpcsrv.Send(&resp)
 				}
 				p.uuids = append(p.uuids, arr.UUID())
 			}
-			query.Variables_[componentName] = p
+			query.Variables[componentName] = p
 		}
 
 	}
 	// parse time parameters
 	start, err := time.Parse(time.RFC3339, req.Time.Start)
 	if err != nil {
-		resp.Msg = errors.Wrapf(err, "Could not parse start timestamp %s", req.Time.Start).Error()
+		resp.Error = errors.Wrapf(err, "Could not parse start timestamp %s", req.Time.Start).Error()
+		log.Error(resp.Error)
 		return grpcsrv.Send(&resp)
 	}
 	end, err := time.Parse(time.RFC3339, req.Time.End)
 	if err != nil {
-		resp.Msg = errors.Wrapf(err, "Could not parse end timestamp %s", req.Time.End).Error()
+		resp.Error = errors.Wrapf(err, "Could not parse end timestamp %s", req.Time.End).Error()
+		log.Error(resp.Error)
 		return grpcsrv.Send(&resp)
 	}
 	query.Time.T0 = start
@@ -101,7 +108,8 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 	if req.Time.Window != "" {
 		dur, err := ParseDuration(req.Time.Window)
 		if err != nil {
-			resp.Msg = errors.Wrapf(err, "Could not parse Window (%s)", req.Time.Window).Error()
+			resp.Error = errors.Wrapf(err, "Could not parse Window (%s)", req.Time.Window).Error()
+			log.Error(resp.Error)
 			return grpcsrv.Send(&resp)
 		}
 		query.Time.WindowSize = uint64(dur.Nanoseconds())
@@ -114,15 +122,40 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 	// run query
 	ts, err := srv.core.HandleQuery(ctx, &query)
 	if err != nil {
-		resp.Msg = errors.Wrap(err, "Could not run query").Error()
+		resp.Error = errors.Wrap(err, "Could not run query").Error()
+		log.Error(resp.Error)
 		return grpcsrv.Send(&resp)
+	}
+	//info := ts.Info()
+	//for _, s := range info.Streams {
+	//	log.Warningf("times %d, values %d", s.NumTimes, s.NumValues)
+	//}
+	resp.Mapping = make(map[string]*mdalgrpc.VarMap)
+	//resp.Context
+	for _, vardec := range query.Variables {
+		var u [][]byte
+		for _, uid := range vardec.uuids {
+			bytes, err := uid.Array().MarshalBinary()
+			if err != nil {
+				resp.Error = errors.Wrap(err, "Could not marshal timeseries").Error()
+				log.Error(resp.Error)
+				return grpcsrv.Send(&resp)
+			}
+			u = append(u, bytes)
+			resp.Context = append(resp.Context, &mdalgrpc.Row{
+				Uuid: bytes,
+				Row:  vardec.Context[uid.String()].ToMapSS(),
+			})
+		}
+		resp.Mapping[vardec.Name] = &mdalgrpc.VarMap{Uuids: u}
 	}
 
 	packspan := opentracing.StartSpan("GRPCDataRequest", opentracing.ChildOf(span.Context()))
 	packed, err := ts.msg.MarshalPacked()
 	if err != nil {
 		packspan.Finish()
-		resp.Msg = errors.Wrap(err, "Could not marshal timeseries").Error()
+		resp.Error = errors.Wrap(err, "Could not marshal timeseries").Error()
+		log.Error(resp.Error)
 		return grpcsrv.Send(&resp)
 	}
 	resp.Arrow = packed

@@ -101,7 +101,7 @@ func (srv *httpServer) handleQuery(rw http.ResponseWriter, req *http.Request, ps
 	for _, s := range inq.Selectors {
 		query.Selectors = append(query.Selectors, Selector(s))
 	}
-	query.Variables = inq.Variables
+	//query.Variables = inq.Variables
 	t0, err := time.Parse("2006-01-02 15:04:05", inq.Time.T0)
 	if err != nil {
 		handleErr(errors.Wrapf(err, "Could not parse T0 (%s)", inq.Time.T0))
