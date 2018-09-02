@@ -1,0 +1,25 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[dev-packages]
+
+[packages]
+grpcio = "*"
+grpcio-tools = "*"
+pyarrow = "*"
+pycapnp = "*"
+pandas = "*"
+sklearn = "*"
+scipy = "*"
+pyaml = "*"
+requests = "*"
+rdflib = "*"
+ipython = "*"
+dataclient = {path = ".", editable = true}
+pytz = "*"
+twine = "*"
+
+[requires]
+python_version = "3.6"
