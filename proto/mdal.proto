@@ -1,8 +1,15 @@
 syntax = "proto3";
 package mdalgrpc;
 
+import "google/api/annotations.proto";
+
 service MDAL {
-    rpc DataQuery(DataQueryRequest) returns (stream DataQueryResponse);
+    rpc DataQuery(DataQueryRequest) returns (stream DataQueryResponse) {
+        option (google.api.http) = {
+            post: "/v1/mdal/query",
+            body: "*"
+        };
+    }
 }
 
 message DataQueryRequest {
