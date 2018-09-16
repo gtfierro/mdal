@@ -1,8 +1,14 @@
 package main
 
+// What's the protocol for dealing with timeseries?
+// For each of the streams, we have a UUID, a start/end time, a window size and a list of aggregation functions.
+//
+
 import (
 	"math"
 
+	//"github.com/apache/arrow/go/arrow"
+	"github.com/apache/arrow/go/arrow/memory"
 	data "github.com/gtfierro/mdal/capnp"
 	"github.com/pkg/errors"
 	capnp "zombiezen.com/go/capnproto2"
@@ -17,6 +23,12 @@ type TimeseriesInfo struct {
 type StreamInfo struct {
 	NumTimes  int
 	NumValues int
+}
+
+var pool memory.Allocator
+
+func init() {
+	pool = memory.NewGoAllocator()
 }
 
 // notes

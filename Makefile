@@ -3,11 +3,14 @@ RELEASE?=0.0.7
 COMMIT?=$(shell git rev-parse --short HEAD)
 PROJECT?=github.com/gtfierro/mdal
 PERSISTDIR?=/etc/mdal
-
+GOPATH?=/home/gabe/go
 clean:
 	rm -f ${APP}
 
 build: clean
+	proto/bin/protoc -I proto -I ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis proto/mdal.proto --go_out=plugins=grpc:proto       
+	proto/bin/protoc -I/usr/local/include -I. -I${GOPATH}/src -I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --grpc-gateway_out=logtostderr=true:. proto/mdal.proto
+	proto/bin/protoc -I/usr/local/include -I. -I${GOPATH}/src -I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis --swagger_out=logtostderr=true:. proto/mdal.proto  
 	CGO_CFLAGS_ALLOW=.*/github.com/gtfierro/hod/turtle go build \
 		-ldflags "-s -w -X ${PROJECT}/version.Release=${RELEASE} \
 						-X ${PROJECT}/version.Commit=${COMMIT}" \
