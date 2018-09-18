@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gtfierro/mdal/proto"
 	opentracing "github.com/opentracing/opentracing-go"
 	uuid "github.com/pborman/uuid"
 	"github.com/pkg/errors"
@@ -26,7 +27,7 @@ func newCore() *Core {
 	return c
 }
 
-func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error) {
+func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, *mdalgrpc.DataQueryResponse, error) {
 	// Resolve the variables and collect the UUIDs
 	var varnames = make(map[string]*VarParams)
 	ctx, cancel := context.WithTimeout(ctx, MAX_TIMEOUT)
@@ -39,7 +40,7 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 			if _, err := core.brick.DoQuery(ctx, vardec); err != nil {
 				log.Error(err)
 				brickspan.Finish()
-				return nil, errors.Wrap(err, "Could not complete Brick query")
+				return nil, nil, errors.Wrap(err, "Could not complete Brick query")
 			}
 		}
 		log.Infof("%v", len(vardec.uuids))
@@ -48,7 +49,7 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 			parsed := uuid.Parse(id)
 			if parsed == nil {
 				brickspan.Finish()
-				return nil, fmt.Errorf("Invalid UUID returned %s", id)
+				return nil, nil, fmt.Errorf("Invalid UUID returned %s", id)
 			}
 			vardec.uuids = append(vardec.uuids, parsed)
 		}
@@ -75,7 +76,7 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 		} else if len(id) == 36 {
 			parsed := uuid.Parse(id)
 			if parsed == nil {
-				return nil, fmt.Errorf("Invalid UUID returned %s", id)
+				return nil, nil, fmt.Errorf("Invalid UUID returned %s", id)
 			}
 			uuids = append(uuids, parsed)
 			selectors = append(selectors, q.Selectors[idx])
@@ -96,12 +97,12 @@ func (core *Core) HandleQuery(ctx context.Context, q *Query) (*Timeseries, error
 	q.selectors = selectors
 	q.units = units
 	log.Debug("to core")
-	ts, err := core.timeseries.DoQuery(ctx, *q)
+	ts, resp, err := core.timeseries.DoQuery(ctx, *q)
 	log.Debug("from core")
 	//if err == nil {
 	//	go core.primeCache(q)
 	//}
-	return ts, err
+	return ts, resp, err
 }
 
 // There are 2 parts to priming the cache:

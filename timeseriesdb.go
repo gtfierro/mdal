@@ -7,6 +7,7 @@ import (
 	"time"
 
 	//data "github.com/gtfierro/mdal/capnp"
+	"github.com/gtfierro/mdal/proto"
 	opentracing "github.com/opentracing/opentracing-go"
 	otl "github.com/opentracing/opentracing-go/log"
 	"github.com/pborman/uuid"
@@ -30,6 +31,7 @@ type btrdbClient struct {
 
 type dataRequest struct {
 	uuid     uuid.UUID
+	resp     *mdalgrpc.DataQueryResponse
 	ctx      context.Context
 	idx      int
 	selector Selector
@@ -121,10 +123,10 @@ func (b *btrdbClient) getStream(streamuuid uuid.UUID) (stream *btrdb.Stream, uni
 	return
 }
 
-func (b *btrdbClient) DoQuery(ctx context.Context, q Query) (*Timeseries, error) {
+func (b *btrdbClient) DoQuery(ctx context.Context, q Query) (*Timeseries, *mdalgrpc.DataQueryResponse, error) {
 
 	if len(q.uuids) == 0 {
-		return nil, errors.New("No UUIDs")
+		return nil, nil, errors.New("No UUIDs")
 	}
 
 	tsspan, ctx := opentracing.StartSpanFromContext(ctx, "BTrDB")
@@ -159,8 +161,10 @@ func (b *btrdbClient) DoQuery(ctx context.Context, q Query) (*Timeseries, error)
 
 	ts, err := NewTimeseries(numStreams)
 	if err != nil {
-		return ts, err
+		return ts, nil, err
 	}
+
+	var resp mdalgrpc.DataQueryResponse
 
 	alignspan := opentracing.StartSpan("GenerateAligned", opentracing.ChildOf(tsspan.Context()))
 	// if the query requests aligned data (and its window/statistical),
@@ -197,6 +201,7 @@ func (b *btrdbClient) DoQuery(ctx context.Context, q Query) (*Timeseries, error)
 			done:     wg.Done,
 			errs:     errChan,
 			ctx:      ctx,
+			resp:     &resp,
 			ts:       ts,
 		}
 		idx += numMap[uuidIdx]
@@ -210,10 +215,10 @@ func (b *btrdbClient) DoQuery(ctx context.Context, q Query) (*Timeseries, error)
 	case <-finished:
 	case err := <-errChan:
 		log.Error(err)
-		return ts, err
+		return ts, nil, err
 	}
 
-	return ts, nil
+	return ts, &resp, nil
 }
 
 func (b *btrdbClient) handleRequest(req dataRequest) error {
@@ -286,6 +291,7 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 	}
 
 	// get pointers to internal buffers to store the timeseries data for staging
+	num_stream := 0
 	iv_time := newIOvec(true)
 	var (
 		iv_min_values   *iovec
@@ -294,17 +300,23 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 		iv_count_values *iovec
 	)
 	if req.selector.DoMin() {
+		num_stream += 1
 		iv_min_values = newIOvec(false)
 	}
 	if req.selector.DoMax() {
+		num_stream += 1
 		iv_max_values = newIOvec(false)
 	}
 	if req.selector.DoMean() {
+		num_stream += 1
 		iv_mean_values = newIOvec(false)
 	}
 	if req.selector.DoCount() {
+		num_stream += 1
 		iv_count_values = newIOvec(false)
 	}
+
+	bldr := newBuilder(num_stream)
 
 	ctx, cancel := context.WithTimeout(req.ctx, MAX_TIMEOUT)
 	defer cancel()
@@ -355,6 +367,33 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 
 		statpoints, generations, errchan := stream.Windows(ctx, t0, t1, req.time.WindowSize, suggested_accuracy, 0)
 		for p := range statpoints {
+			vals := make([]float64, 5)
+			i := 0
+			applyNan := func(p btrdb.StatPoint, val float64) float64 {
+				if p.Count == 0 {
+					return math.NaN()
+				} else {
+					return val
+				}
+			}
+			if req.selector.DoMin() {
+				vals[i] = ConvertFrom(applyNan(p, p.Min), units, req.units)
+				i++
+			}
+			if req.selector.DoMax() {
+				vals[i] = ConvertFrom(applyNan(p, p.Max), units, req.units)
+				i++
+			}
+			if req.selector.DoMean() {
+				vals[i] = ConvertFrom(applyNan(p, p.Mean), units, req.units)
+				i++
+			}
+			if req.selector.DoCount() {
+				vals[i] = float64(p.Count)
+				i++
+			}
+			bldr.add(p.Time, vals[:i]...)
+
 			iv_time.addTime(p.Time)
 			addWithNaN := func(io *iovec, point btrdb.StatPoint, val float64) {
 				if point.Count == 0 {
@@ -384,6 +423,9 @@ func (b *btrdbClient) getWindow(req dataRequest) error {
 			return errors.Wrapf(err, "Could not fetch stat data for stream %s", stream.UUID())
 		}
 	}
+
+	//arr := b.NewFloat64Array()
+	bldr.build(req.resp)
 	bspan.Finish()
 	retrieveDuration := time.Since(retrieveStart)
 

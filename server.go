@@ -77,14 +77,21 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 				Units:      definition.Units,
 				Context:    make(map[string]hoddb.ResultMap),
 			}
-			for _, uuidbytes := range definition.Uuids {
-				var arr *uuid.Array
-				if err := arr.UnmarshalBinary(uuidbytes); err != nil {
-					resp.Error = fmt.Errorf("UUID %v is invalid", uuidbytes).Error()
+			for _, uuidstring := range definition.Uuids {
+				if u := uuid.Parse(uuidstring); u == nil {
+					resp.Error = fmt.Errorf("UUID %v is invalid", uuidstring).Error()
 					log.Error(resp.Error)
 					return grpcsrv.Send(&resp)
+				} else {
+					p.uuids = append(p.uuids, u)
 				}
-				p.uuids = append(p.uuids, arr.UUID())
+				//var arr *uuid.Array
+				//if err := arr.UnmarshalBinary(uuidbytes); err != nil {
+				//	resp.Error = fmt.Errorf("UUID %v is invalid", uuidbytes).Error()
+				//	log.Error(resp.Error)
+				//	return grpcsrv.Send(&resp)
+				//}
+				//p.uuids = append(p.uuids, arr.UUID())
 			}
 			query.Variables[componentName] = p
 		}
@@ -121,7 +128,7 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 	fmt.Printf("%+v\n", query)
 
 	// run query
-	ts, err := srv.core.HandleQuery(ctx, &query)
+	ts, respnew, err := srv.core.HandleQuery(ctx, &query)
 	if err != nil {
 		resp.Error = errors.Wrap(err, "Could not run query").Error()
 		log.Error(resp.Error)
@@ -131,6 +138,8 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 	//for _, s := range info.Streams {
 	//	log.Warningf("times %d, values %d", s.NumTimes, s.NumValues)
 	//}
+	resp.Times = respnew.Times
+	resp.Values = respnew.Values
 	resp.Mapping = make(map[string]*mdalgrpc.VarMap)
 	//resp.Context
 	for _, vardec := range query.Variables {
@@ -162,8 +171,9 @@ func (srv *Server) DataQuery(req *mdalgrpc.DataQueryRequest, grpcsrv mdalgrpc.MD
 	resp.Arrow = packed
 	packspan.Finish()
 	for _, tsuuid := range query.uuids {
-		uuidbytes, _ := tsuuid.Array().MarshalBinary()
-		resp.Uuids = append(resp.Uuids, uuidbytes)
+		//uuidbytes, _ := tsuuid.Array().MarshalBinary()
+		//resp.Uuids = append(resp.Uuids, uuidbytes)
+		resp.Uuids = append(resp.Uuids, tsuuid.String())
 	}
 
 	sendspan := opentracing.StartSpan("GRPCDataRequest", opentracing.ChildOf(span.Context()))
