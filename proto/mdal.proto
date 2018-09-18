@@ -22,7 +22,7 @@ message DataQueryRequest {
 message Variable {
     string name = 1;
     string definition = 2;
-    repeated bytes uuids = 3;
+    repeated string uuids = 3;
     string units = 4;
 }
 
@@ -55,10 +55,13 @@ message DataQueryResponse {
     // uuid -> triple context
     repeated Row context = 3;
 
-    repeated bytes uuids = 4;
+    repeated string uuids = 4;
     // apache arrow serialized response
     bytes arrow = 5;
     string error = 6;
+
+    repeated int64 times = 7;
+    repeated ValueArray values = 8;
 }
 
 message Row {
@@ -68,4 +71,8 @@ message Row {
 
 message VarMap {
     repeated bytes uuids = 1;
+}
+
+message ValueArray {
+    repeated double value = 1;
 }
