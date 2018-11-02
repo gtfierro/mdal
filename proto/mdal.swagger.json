@@ -20,7 +20,33 @@
         "operationId": "DataQuery",
         "responses": {
           "200": {
-            "description": "(streaming responses)",
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/definitions/mdalgrpcDataQueryResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/mdalgrpcDataQueryRequest"
+            }
+          }
+        ],
+        "tags": [
+          "MDAL"
+        ]
+      }
+    },
+    "/v1/mdal/query2": {
+      "post": {
+        "operationId": "DataQuery2",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
             "schema": {
               "$ref": "#/definitions/mdalgrpcDataQueryResponse"
             }
@@ -43,6 +69,44 @@
     }
   },
   "definitions": {
+    "DataQueryResponseRow": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": "string"
+        },
+        "row": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "DataQueryResponseValueArray": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      }
+    },
+    "DataQueryResponseVarMap": {
+      "type": "object",
+      "properties": {
+        "uuids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "byte"
+          }
+        }
+      }
+    },
     "mdalgrpcAggFunc": {
       "type": "string",
       "enum": [
@@ -98,21 +162,21 @@
         "rows": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/mdalgrpcRow"
+            "$ref": "#/definitions/DataQueryResponseRow"
           },
           "title": "TODO: need to transform this from list of triples to a map\nkeyed by UUID of the triples relevant to that UUID"
         },
         "mapping": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/mdalgrpcVarMap"
+            "$ref": "#/definitions/DataQueryResponseVarMap"
           },
           "title": "variable name -\u003e list of uuids"
         },
         "context": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/mdalgrpcRow"
+            "$ref": "#/definitions/DataQueryResponseRow"
           },
           "title": "uuid -\u003e triple context"
         },
@@ -140,22 +204,7 @@
         "values": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/mdalgrpcValueArray"
-          }
-        }
-      }
-    },
-    "mdalgrpcRow": {
-      "type": "object",
-      "properties": {
-        "uuid": {
-          "type": "string",
-          "format": "byte"
-        },
-        "row": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
+            "$ref": "#/definitions/DataQueryResponseValueArray"
           }
         }
       }
@@ -175,30 +224,6 @@
         "aligned": {
           "type": "boolean",
           "format": "boolean"
-        }
-      }
-    },
-    "mdalgrpcValueArray": {
-      "type": "object",
-      "properties": {
-        "value": {
-          "type": "array",
-          "items": {
-            "type": "number",
-            "format": "double"
-          }
-        }
-      }
-    },
-    "mdalgrpcVarMap": {
-      "type": "object",
-      "properties": {
-        "uuids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "byte"
-          }
         }
       }
     },

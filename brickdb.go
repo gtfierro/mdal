@@ -103,7 +103,9 @@ func connectHodDB() brickClient {
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Debug("BEFORE")
 		db, err := hoddb.NewHodDB(cfg)
+		log.Debug("HERE")
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -141,6 +141,10 @@ func (t *Timeseries) AddAlignedStream(idx int, iv_times, iv_values *iovec) error
 
 	val_count := iv_values.count()
 
+	if idx > t.list.Len() {
+		log.Warning(t.list.Len(), idx)
+		return nil
+	}
 	stream := t.list.At(idx)
 	values, err := stream.NewValues(int32(times.Len()))
 	if err != nil {

@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	_ "net/http/pprof"
+	//"net/http"
+	//_ "net/http/pprof"
 
 	"github.com/gtfierro/mdal/version"
 	"github.com/immesys/sysdigtracer"
@@ -30,9 +30,9 @@ func start(c *cli.Context) error {
 	}
 	Config = cfg
 	core := newCore()
-	go func() {
-		log.Fatal(http.ListenAndServe("localhost:6060", nil))
-	}()
+	//go func() {
+	//	log.Fatal(http.ListenAndServe("localhost:6060", nil))
+	//}()
 	//go RunHTTP(core)
 	NewServer(core, "0.0.0.0:8088")
 	//log.Fatal(RunBosswave(core))
