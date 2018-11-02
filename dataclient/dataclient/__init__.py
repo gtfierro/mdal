@@ -5,8 +5,8 @@ import capnp
 import dataclient.data_capnp
 import pytz
 import pandas as pd
-import dataclient.mdal_pb2
-import dataclient.mdal_pb2_grpc
+import dataclient.mdal_pb2 as mdal_pb2
+import dataclient.mdal_pb2_grpc as mdal_pb2_grpc
 
 agg_funcs = {
     "RAW": mdal_pb2.RAW,
@@ -21,9 +21,7 @@ def parse_agg_func(name):
 
 class MDALClient:
     def __init__(self, caddr):
-        MAX_MESSAGE_LENGTH = 1024*1024*128
-        options=[('grpc.max_send_message_length', MAX_MESSAGE_LENGTH), ('grpc.max_receive_message_length', MAX_MESSAGE_LENGTH)]
-        self.channel = grpc.insecure_channel(caddr, options)
+        self.channel = grpc.insecure_channel(caddr)
         self.stub = mdal_pb2_grpc.MDALStub(self.channel)
 
     def query(self, request):
@@ -78,7 +76,7 @@ class MDALClient:
         #       return df
 
 if __name__ == '__main__':
-    m = MDALClient("localhost:8088")
+    m = MDALClient("corbusier.cs.berkeley.edu:8088")
 
     for windowsize in ["96h","24h","12h","6h","3h","1h","30m","15m","10m","5m","1m","30s"]:
     #for windowsize in ["1h","30m","15m","10m","5m","1m","30s"]:
@@ -107,6 +105,4 @@ if __name__ == '__main__':
         except Exception as e:
             print('ERR', e)
             continue
-
-        print(len(resp.columns), len(resp))
-        print(resp[resp.columns[0]].describe())
+        print(resp)

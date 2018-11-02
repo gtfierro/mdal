@@ -1,12 +1,12 @@
 import grpc
 import uuid
 import capnp
-import data_capnp
-import result
+import dataclient.data_capnp
+import dataclient.result
 import pytz
 import pandas as pd
-import mdal_pb2
-import mdal_pb2_grpc
+import dataclient.mdal_pb2
+import dataclient.mdal_pb2_grpc
 
 agg_funcs = {
     "RAW": mdal_pb2.RAW,
@@ -55,19 +55,16 @@ class MDALClient:
             if resp.msg != "":
                 raise Exception(resp.msg)
 	    return result.Result(resp)
-            #print resp.mapping
             mapping = {}
             for k, v in resp.mapping.items():
-                mapping[k] = [str(uuid.UUID(bytes=x)) for x in v.uuids]
+                mapping[k] = v.uuids
             context = {}
             for row in resp.context:
-                context[str(uuid.UUID(bytes=row.uuid))] = dict(row.row)
-            #print context
-	    uuids = [str(uuid.UUID(bytes=x)) for x in resp.uuids]
-	    data = data_capnp.StreamCollection.from_bytes_packed(resp.arrow, traversal_limit_in_words=2**63)
+                context[row.uuid] = dict(row.row)
+	    uuids = resp.uuids
+	    data = data_capnp.StreamCollection.from_bytes_packed(resp.arrow)
 	    if hasattr(data, 'times') and len(data.times):
 		times = list(data.times)
-                print len(times)
 		if len(times) == 0:
 		    return pd.DataFrame(columns=uuids)
 		df = pd.DataFrame(index=pd.to_datetime(times, unit='ns', utc=False))
@@ -79,7 +76,6 @@ class MDALClient:
 		df = pd.DataFrame()
 		for idx, s in enumerate(data.streams):
 		    if hasattr(s, 'times'):
-                        print len(list(s.times))
 			newdf = pd.DataFrame(list(s.values), index=list(s.times), columns=[uuids[idx]])
 			newdf.index = pd.to_datetime(newdf.index, unit='ns').tz_localize(pytz.utc).tz_convert(tz)
 			df = df.join(newdf, how='outer')

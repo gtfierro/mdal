@@ -1,8 +1,21 @@
 syntax = "proto3";
 package mdalgrpc;
 
+import "google/api/annotations.proto";
+
 service MDAL {
-    rpc DataQuery(DataQueryRequest) returns (stream DataQueryResponse);
+    rpc DataQuery(DataQueryRequest) returns (stream DataQueryResponse) {
+        option (google.api.http) = {
+            post: "/v1/mdal/query",
+            body: "*"
+        };
+    }
+    rpc DataQuery2(DataQueryRequest) returns (stream DataQueryResponse) {
+        option (google.api.http) = {
+            post: "/v1/mdal/query2",
+            body: "*"
+        };
+    }
 }
 
 message DataQueryRequest {
@@ -15,7 +28,7 @@ message DataQueryRequest {
 message Variable {
     string name = 1;
     string definition = 2;
-    repeated bytes uuids = 3;
+    repeated string uuids = 3;
     string units = 4;
 }
 
@@ -40,6 +53,19 @@ enum AggFunc {
 }
 
 message DataQueryResponse {
+
+    message Row {
+        string uuid = 1;
+        map<string, string> row = 2;
+    }
+
+    message VarMap {
+        repeated bytes uuids = 1;
+    }
+
+    message ValueArray {
+        repeated double value = 1;
+    }
     // TODO: need to transform this from list of triples to a map
     // keyed by UUID of the triples relevant to that UUID
     repeated Row rows = 1;
@@ -48,17 +74,11 @@ message DataQueryResponse {
     // uuid -> triple context
     repeated Row context = 3;
 
-    repeated bytes uuids = 4;
+    repeated string uuids = 4;
     // apache arrow serialized response
     bytes arrow = 5;
-    string msg = 6;
-}
+    string error = 6;
 
-message Row {
-    bytes uuid = 1;
-    map<string, string> row = 2;
-}
-
-message VarMap {
-    repeated bytes uuids = 1;
+    repeated int64 times = 7;
+    repeated ValueArray values = 8;
 }

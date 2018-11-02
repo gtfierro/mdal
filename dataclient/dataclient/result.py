@@ -15,12 +15,12 @@ class Result(object):
         self.serialized = response_object.SerializeToString()
         self.mapping = {}
         self.context = {}
-        self.uuids = [str(uuid.UUID(bytes=x)) for x in response_object.uuids]
+        self.uuids = response_object.uuids
         self.data = data_capnp.StreamCollection.from_bytes_packed(response_object.arrow)
         for row in response_object.context:
-            self.context[str(uuid.UUID(bytes=row.uuid))] = dict(row.row)
+            self.context[row.uuid] = dict(row.row)
         for k, v in response_object.mapping.items():
-            self.mapping[k] = [str(uuid.UUID(bytes=x)) for x in v.uuids]
+            self.mapping[k] = v.uuids #[str(uuid.UUID(bytes=x)) for x in v.uuids]
         self.df = self._build_df()
 
     def _build_df(self):
@@ -66,7 +66,7 @@ class Result(object):
     @cached_property()
     def context(self):
         for row in self.response_object.context:
-            self._context[str(uuid.UUID(bytes=row.uuid))] = dict(row.row)
+            self._context[row.uuid] = dict(row.row)
         return self._context
 
     @cached_property()

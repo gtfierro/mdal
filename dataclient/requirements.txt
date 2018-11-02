@@ -1,0 +1,12 @@
+grpcio
+grpcio-tools
+pyarrow
+pycapnp
+pandas
+xbos
+sklearn
+scipy
+pyaml
+pytz
+grpcio-tools
+googleapis-common-protos
